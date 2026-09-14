@@ -2,7 +2,7 @@ local Config = {}
 
 Config.Game = {
 	Name = "Anime Rift Ascension",
-	Version = "2.5-dev",
+	Version = "3.0-alpha",
 
 	-- Basic combat
 	BaseDamage = 12,
@@ -17,6 +17,7 @@ Config.Game = {
 	-- Abilities
 	DashCooldown = 2.4,
 	DashSpeed = 82,
+	DashDistance = 17,
 	BurstCooldown = 6.5,
 	BurstRange = 20,
 	BurstDamageMultiplier = 2.35,
@@ -40,6 +41,13 @@ Config.Game = {
 
 	-- Progression
 	MaxEquippedPets = 3,
+	MaxEquippedRelics = 2,
+	RelicDropChance = 0.18,
+	BossRelicDrops = 2,
+	MasteryPerKill = 3,
+	MasteryPerBoss = 30,
+	MasteryDamagePerPoint = 0.001,
+	MasteryDamageCap = 0.50,
 	PlaytimeRewardSeconds = 120,
 	PlaytimeRewardCoins = 250,
 	AutosaveSeconds = 75,
@@ -54,6 +62,84 @@ Config.RarityColors = {
 	Legendary = Color3.fromRGB(255, 183, 48),
 	Mythic = Color3.fromRGB(255, 68, 145),
 	WORLD = Color3.fromRGB(255, 228, 92),
+}
+
+Config.Styles = {
+	RiftBlade = {
+		Id = "RiftBlade",
+		Name = "Rift Blade",
+		Description = "Balanced starter style with stable combo damage.",
+		UnlockLevel = 1,
+		UnlockCost = 0,
+		DamageMultiplier = 1.00,
+		AttackCooldown = 0.42,
+		Range = 16,
+		CritBonus = 0,
+		AbilityMultiplier = 1.00,
+		StaggerBonus = 0,
+		Color = Color3.fromRGB(184, 118, 255),
+		Order = 1,
+	},
+	EmberKatana = {
+		Id = "EmberKatana",
+		Name = "Ember Katana",
+		Description = "Fast slashes with stronger abilities and bonus crit.",
+		UnlockLevel = 4,
+		UnlockCost = 1200,
+		DamageMultiplier = 1.12,
+		AttackCooldown = 0.34,
+		Range = 17,
+		CritBonus = 0.03,
+		AbilityMultiplier = 1.12,
+		StaggerBonus = 0,
+		Color = Color3.fromRGB(255, 105, 48),
+		Order = 2,
+	},
+	FrostGauntlets = {
+		Id = "FrostGauntlets",
+		Name = "Frost Gauntlets",
+		Description = "Heavy close-range hits that stagger enemies longer.",
+		UnlockLevel = 8,
+		UnlockCost = 5200,
+		DamageMultiplier = 1.30,
+		AttackCooldown = 0.48,
+		Range = 13.5,
+		CritBonus = 0.01,
+		AbilityMultiplier = 1.20,
+		StaggerBonus = 0.35,
+		Color = Color3.fromRGB(90, 205, 255),
+		Order = 3,
+	},
+	VoidScythe = {
+		Id = "VoidScythe",
+		Name = "Void Scythe",
+		Description = "Slow, wide attacks with huge damage and crit potential.",
+		UnlockLevel = 14,
+		UnlockCost = 21000,
+		DamageMultiplier = 1.58,
+		AttackCooldown = 0.58,
+		Range = 21,
+		CritBonus = 0.07,
+		AbilityMultiplier = 1.34,
+		StaggerBonus = 0.15,
+		Color = Color3.fromRGB(215, 75, 255),
+		Order = 4,
+	},
+}
+
+Config.RelicRarities = {
+	Common = {Weight = 58, Power = 0.05, Crit = 0.000},
+	Rare = {Weight = 27, Power = 0.10, Crit = 0.005},
+	Epic = {Weight = 10, Power = 0.19, Crit = 0.010},
+	Legendary = {Weight = 4, Power = 0.34, Crit = 0.020},
+	Mythic = {Weight = 1, Power = 0.58, Crit = 0.035},
+}
+
+Config.RelicNames = {
+	[1] = {"Verdant Charm", "Dojo Crest", "Spirit Leaf"},
+	[2] = {"Ember Core", "Ronin Seal", "Phoenix Ash"},
+	[3] = {"Frost Sigil", "Glacier Heart", "Aurora Shard"},
+	[4] = {"Void Eye", "Abyss Fragment", "Rift Crown"},
 }
 
 Config.Zones = {
