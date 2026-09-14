@@ -64,7 +64,6 @@ local function makeButton(parent, keyText, nameText, x, color)
 	cooldown.Visible = false
 	cooldown.Parent = button
 	corner(cooldown, 10)
-
 	return button, cooldown
 end
 
@@ -95,10 +94,24 @@ function CombatUI.new(gui, config, onAbility)
 	self.Buttons.Dash = {Button = q, Cooldown = qCd}
 	self.Buttons.Burst = {Button = e, Cooldown = eCd}
 	self.Buttons.Nova = {Button = r, Cooldown = rCd}
-
 	q.Activated:Connect(function() self:TryUse("Dash") end)
 	e.Activated:Connect(function() self:TryUse("Burst") end)
 	r.Activated:Connect(function() self:TryUse("Nova") end)
+
+	local styleLabel = Instance.new("TextLabel")
+	styleLabel.AnchorPoint = Vector2.new(0.5, 1)
+	styleLabel.Position = UDim2.new(0.5, 0, 0, -5)
+	styleLabel.Size = UDim2.new(0, 290, 0, 24)
+	styleLabel.BackgroundColor3 = Color3.fromRGB(17, 18, 27)
+	styleLabel.BackgroundTransparency = 0.08
+	styleLabel.BorderSizePixel = 0
+	styleLabel.Text = "STYLE • RIFT BLADE"
+	styleLabel.TextColor3 = Color3.fromRGB(205, 170, 255)
+	styleLabel.TextSize = 12
+	styleLabel.Font = Enum.Font.GothamBold
+	styleLabel.Parent = frame
+	corner(styleLabel, 8)
+	self.StyleLabel = styleLabel
 
 	local combo = Instance.new("TextLabel")
 	combo.AnchorPoint = Vector2.new(0.5, 1)
@@ -116,11 +129,14 @@ function CombatUI.new(gui, config, onAbility)
 	corner(combo, 10)
 	self.Combo = combo
 
-	RunService.RenderStepped:Connect(function()
-		self:RenderCooldowns()
-	end)
-
+	RunService.RenderStepped:Connect(function() self:RenderCooldowns() end)
 	return self
+end
+
+function CombatUI:SetStyle(style)
+	if not style then return end
+	self.StyleLabel.Text = "STYLE • " .. string.upper(style.Name)
+	self.StyleLabel.TextColor3 = style.Color
 end
 
 function CombatUI:GetCooldown(name)
@@ -168,9 +184,7 @@ function CombatUI:ShowCombo(stage)
 	self.Combo.Visible = true
 	self.Combo.TextTransparency = 0
 	task.delay(0.8, function()
-		if token == self.ComboToken then
-			self.Combo.Visible = false
-		end
+		if token == self.ComboToken then self.Combo.Visible = false end
 	end)
 end
 
