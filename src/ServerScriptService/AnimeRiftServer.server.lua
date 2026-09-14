@@ -28,6 +28,7 @@ local Context = {
 	Remotes = {
 		Attack = makeRemote("Attack"),
 		Ability = makeRemote("Ability"),
+		CombatFeedback = makeRemote("CombatFeedback"),
 		EquipPet = makeRemote("EquipPet"),
 		Notify = makeRemote("Notify"),
 		WorldEvent = makeRemote("WorldEvent"),
