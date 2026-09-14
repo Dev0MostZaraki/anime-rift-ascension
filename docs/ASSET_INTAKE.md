@@ -18,13 +18,17 @@ The game now supports a controlled Creator Store art pipeline. External assets a
 
 ## Studio import workflow
 
-1. Start the game once after pulling `4.5-asset-foundation`. This creates `ServerStorage/AnimeRiftVendorAssets` and the approved package folders.
-2. Stop Play mode.
+1. Pull `4.5-asset-foundation` and let Rojo sync while **not** in Play mode.
+2. In Explorer, confirm these persistent folders exist under `ServerStorage/AnimeRiftVendorAssets`:
+   - `Roblox_SyntyNature_6933438443`
+   - `Roblox_SyntyDungeon_6934021345`
 3. Open **Toolbox → Creator Store**.
 4. Search for the exact approved pack name or asset ID.
 5. Insert the pack into Studio.
 6. Drag the inserted pack/model under the matching approved package folder in `ServerStorage/AnimeRiftVendorAssets`.
-7. Start Play again.
+7. Start Play.
+
+The ServerStorage slots are declared in `default.project.json` with `$ignoreUnknownInstances: true`, so imported models are not deleted by Rojo when it synchronizes the code project.
 
 At runtime, `AssetIntakeService` sanitizes approved package folders and removes embedded scripts, remotes, tools and interaction objects. Environment parts are anchored and touch events are disabled before they are used.
 
