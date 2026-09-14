@@ -96,6 +96,18 @@ end
 
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
+
+-- Floating Void bridge fragments are visual set dressing, not collision geometry.
+local decor = Context.WorldFolder and Context.WorldFolder:FindFirstChild("Decor")
+if decor then
+	for _, object in ipairs(decor:GetDescendants()) do
+		if object:IsA("BasePart") and object.Name == "VoidBridgeShard" then
+			object.CanCollide = false
+			object.CanQuery = false
+		end
+	end
+end
+
 Context.Services.PetService:Start()
 Context.Services.ArsenalService:Start()
 Context.Services.LootService:Start()
