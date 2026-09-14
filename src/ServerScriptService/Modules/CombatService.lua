@@ -18,7 +18,7 @@ end
 local function hpGui(parent, boss)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "HP"
-	gui.Size = boss and UDim2.new(0, 300, 0, 72) or UDim2.new(0, 190, 0, 52)
+	gui.Size = boss and UDim2.new(0, 300, 0, 76) or UDim2.new(0, 190, 0, 52)
 	gui.StudsOffset = Vector3.new(0, boss and 6.5 or 4.5, 0)
 	gui.AlwaysOnTop = true
 	gui.MaxDistance = boss and 95 or 52
@@ -63,24 +63,9 @@ function CombatService:CreateModel(name, position, color, boss, archetype)
 	model.Name = name
 	model.Parent = self.Context.WorldFolder:WaitForChild("Enemies")
 
-	local body = makeBodyPart(
-		model,
-		"HumanoidRootPart",
-		boss and Vector3.new(7, 9, 5) or Vector3.new(4, 6, 3),
-		CFrame.new(position),
-		color:Lerp(Color3.fromRGB(35, 35, 42), 0.22),
-		Enum.Material.SmoothPlastic
-	)
+	local body = makeBodyPart(model, "HumanoidRootPart", boss and Vector3.new(7, 9, 5) or Vector3.new(4, 6, 3), CFrame.new(position), color:Lerp(Color3.fromRGB(35, 35, 42), 0.22), Enum.Material.SmoothPlastic)
 	body.CanCollide = true
-
-	local head = makeBodyPart(
-		model,
-		"Head",
-		boss and Vector3.new(5, 5, 5) or Vector3.new(3.4, 3.4, 3.4),
-		CFrame.new(position + Vector3.new(0, boss and 7 or 4.5, 0)),
-		Color3.fromRGB(224, 204, 188),
-		Enum.Material.SmoothPlastic
-	)
+	local head = makeBodyPart(model, "Head", boss and Vector3.new(5, 5, 5) or Vector3.new(3.4, 3.4, 3.4), CFrame.new(position + Vector3.new(0, boss and 7 or 4.5, 0)), Color3.fromRGB(224, 204, 188), Enum.Material.SmoothPlastic)
 	head.Shape = Enum.PartType.Ball
 
 	local shoulderY = boss and 3.5 or 2.2
@@ -116,7 +101,7 @@ function CombatService:UpdateLabel(model)
 	local gui = head and head:FindFirstChild("HP")
 	local label = gui and gui:FindFirstChild("Label")
 	if label then
-		local prefix = data.Boss and "RIFT TYRANT  •  " or ""
+		local prefix = data.Boss and ("RIFT TYRANT • PHASE " .. tostring(data.Phase or 1) .. "\n") or ""
 		label.Text = prefix .. data.Name .. "\n" .. math.max(0, math.floor(data.HP)) .. " / " .. math.floor(data.MaxHP) .. " HP"
 	end
 end
@@ -131,14 +116,7 @@ function CombatService:AddEnemy(zone, index, boss)
 	end
 
 	local archetype = boss and "Boss" or (zone.Archetype or "Brawler")
-	local model = self:CreateModel(
-		boss and "Rift Tyrant" or zone.EnemyName,
-		position,
-		boss and Color3.fromRGB(235, 70, 150) or zone.Color,
-		boss,
-		archetype
-	)
-
+	local model = self:CreateModel(boss and "Rift Tyrant" or zone.EnemyName, position, boss and Color3.fromRGB(235, 70, 150) or zone.Color, boss, archetype)
 	self.Enemies[model] = {
 		Name = boss and "Rift Tyrant" or zone.EnemyName,
 		HP = boss and 9500 or zone.EnemyHP,
@@ -158,6 +136,7 @@ function CombatService:AddEnemy(zone, index, boss)
 		NextSlam = os.clock() + 4,
 		CastingUntil = 0,
 		StaggerUntil = 0,
+		Phase = 1,
 	}
 	self:UpdateLabel(model)
 end
@@ -170,35 +149,29 @@ function CombatService:ClosestPlayer(position, range)
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if humanoid and humanoid.Health > 0 and root then
 			local distance = (root.Position - position).Magnitude
-			if distance <= bestDistance then
-				bestPlayer, bestRoot, bestDistance = player, root, distance
-			end
+			if distance <= bestDistance then bestPlayer, bestRoot, bestDistance = player, root, distance end
 		end
 	end
 	return bestPlayer, bestRoot, bestDistance
 end
 
-function CombatService:ClosestEnemyInFront(root, range)
-	local best, bestDistance = nil, range
+function CombatService:EnemiesInFront(root, range, dotRequirement)
+	local list = {}
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
-	if look.Magnitude < 0.01 then return nil end
+	if look.Magnitude < 0.01 then return list end
 	look = look.Unit
-
 	for model, data in pairs(self.Enemies) do
 		if data.Alive and model.Parent and model.PrimaryPart then
 			local delta = model.PrimaryPart.Position - root.Position
 			local flat = Vector3.new(delta.X, 0, delta.Z)
 			local distance = flat.Magnitude
-			if distance > 0.01 and distance <= bestDistance then
-				local dot = look:Dot(flat.Unit)
-				if dot >= self.Context.Config.Game.AttackArcDot then
-					best = model
-					bestDistance = distance
-				end
+			if distance > 0.01 and distance <= range and look:Dot(flat.Unit) >= dotRequirement then
+				table.insert(list, {Model = model, Distance = distance})
 			end
 		end
 	end
-	return best, bestDistance
+	table.sort(list, function(a, b) return a.Distance < b.Distance end)
+	return list
 end
 
 function CombatService:Pulse(position, color, size, duration)
@@ -218,9 +191,7 @@ function CombatService:Pulse(position, color, size, duration)
 	pulse.Transparency = 0.18
 	pulse.Parent = folder
 	TweenService:Create(pulse, TweenInfo.new(duration), {Size = Vector3.new(size, size, size), Transparency = 1}):Play()
-	task.delay(duration + 0.05, function()
-		if pulse.Parent then pulse:Destroy() end
-	end)
+	task.delay(duration + 0.05, function() if pulse.Parent then pulse:Destroy() end end)
 end
 
 function CombatService:Ring(position, radius, color, duration)
@@ -250,7 +221,6 @@ function CombatService:DamageNumber(model, amount, crit)
 	gui.StudsOffset = Vector3.new(math.random(-10, 10) / 10, 4, 0)
 	gui.AlwaysOnTop = true
 	gui.Parent = model.PrimaryPart
-
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
@@ -260,19 +230,28 @@ function CombatService:DamageNumber(model, amount, crit)
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBlack
 	label.Parent = gui
-
 	TweenService:Create(gui, TweenInfo.new(0.5), {StudsOffset = gui.StudsOffset + Vector3.new(0, 2.5, 0)}):Play()
 	TweenService:Create(label, TweenInfo.new(0.5), {TextTransparency = 1, TextStrokeTransparency = 1}):Play()
-	task.delay(0.55, function()
-		if gui.Parent then gui:Destroy() end
-	end)
+	task.delay(0.55, function() if gui.Parent then gui:Destroy() end end)
+end
+
+function CombatService:UpdateBossPhase(model, data)
+	if not data.Boss or not data.Alive then return end
+	local ratio = data.HP / data.MaxHP
+	local nextPhase = ratio <= 0.33 and 3 or (ratio <= 0.66 and 2 or 1)
+	if nextPhase <= (data.Phase or 1) then return end
+	data.Phase = nextPhase
+	data.StaggerUntil = os.clock() + 0.8
+	data.NextSlam = os.clock() + 1.8
+	self:UpdateLabel(model)
+	self:Pulse(model.PrimaryPart.Position, nextPhase == 2 and Color3.fromRGB(255, 110, 80) or Color3.fromRGB(255, 45, 190), nextPhase == 2 and 22 or 30, 0.65)
+	self.Context:NotifyAll("RIFT TYRANT • PHASE " .. nextPhase .. " awakened!", "boss")
 end
 
 function CombatService:Kill(player, model)
 	local data = self.Enemies[model]
 	if not data or not data.Alive then return end
 	data.Alive = false
-
 	local stats = player:FindFirstChild("leaderstats")
 	local profile = player:FindFirstChild("RiftProfile")
 	if not stats or not profile then return end
@@ -283,14 +262,16 @@ function CombatService:Kill(player, model)
 	stats.Coins.Value += coins
 	self.Context.Services.DataService:AddXP(player, xp)
 	profile.QuestKills.Value += 1
+	self.Context.Services.ArsenalService:AddMastery(player, data.Boss and self.Context.Config.Game.MasteryPerBoss or self.Context.Config.Game.MasteryPerKill)
+	self.Context.Services.LootService:DropFromEnemy(player, data)
 
 	if data.Boss then
 		stats.Gems.Value += data.Gems
 		profile.QuestBosses.Value += 1
 		self.Context:NotifyAll(player.Name .. " defeated the RIFT TYRANT!", "boss")
-		self.Context:Notify(player, "+" .. coins .. " Coins  •  +" .. xp .. " XP  •  +" .. data.Gems .. " Gems", "success")
+		self.Context:Notify(player, "+" .. coins .. " Coins • +" .. xp .. " XP • +" .. data.Gems .. " Gems", "success")
 	else
-		self.Context:Notify(player, "+" .. coins .. " Coins  •  +" .. xp .. " XP", "loot")
+		self.Context:Notify(player, "+" .. coins .. " Coins • +" .. xp .. " XP", "loot")
 	end
 	self.Context.Services.QuestService:Check(player)
 
@@ -306,12 +287,8 @@ function CombatService:Kill(player, model)
 		self.Enemies[model] = nil
 		if model.Parent then model:Destroy() end
 	end)
-
-	local respawn = boss and self.Context.Config.Game.BossRespawnSeconds or self.Context.Config.Game.EnemyRespawnSeconds
-	task.delay(respawn, function()
-		if self.Context.WorldFolder and self.Context.WorldFolder.Parent then
-			self:AddEnemy(zone, index, boss)
-		end
+	task.delay(boss and self.Context.Config.Game.BossRespawnSeconds or self.Context.Config.Game.EnemyRespawnSeconds, function()
+		if self.Context.WorldFolder and self.Context.WorldFolder.Parent then self:AddEnemy(zone, index, boss) end
 	end)
 end
 
@@ -319,14 +296,11 @@ function CombatService:Hit(player, model, damage, crit, stagger)
 	local data = self.Enemies[model]
 	if not data or not data.Alive then return end
 	data.HP -= damage
-	if stagger and stagger > 0 then
-		data.StaggerUntil = math.max(data.StaggerUntil or 0, os.clock() + stagger)
-	end
+	if stagger and stagger > 0 then data.StaggerUntil = math.max(data.StaggerUntil or 0, os.clock() + stagger) end
 	self:DamageNumber(model, damage, crit)
+	self:UpdateBossPhase(model, data)
 	self:UpdateLabel(model)
-	if data.HP <= 0 then
-		self:Kill(player, model)
-	end
+	if data.HP <= 0 then self:Kill(player, model) end
 end
 
 function CombatService:GetComboStage(player, now)
@@ -345,44 +319,52 @@ end
 function CombatService:Attack(player)
 	local now = os.clock()
 	local cfg = self.Context.Config.Game
-	if now - (self.LastAttack[player] or 0) < cfg.AttackCooldown then return end
+	local style, styleId = self.Context.Services.ArsenalService:GetStyle(player)
+	if now - (self.LastAttack[player] or 0) < (style.AttackCooldown or cfg.AttackCooldown) then return end
 
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local tool = character and character:FindFirstChild("Rift Blade")
-	if not humanoid or humanoid.Health <= 0 or not root or not tool then return end
+	local tool = character and character:FindFirstChildWhichIsA("Tool")
+	if not humanoid or humanoid.Health <= 0 or not root or not tool or tool:GetAttribute("AnimeRiftWeapon") ~= true then return end
 
 	self.LastAttack[player] = now
 	local stage = self:GetComboStage(player, now)
-	local colors = {
-		Color3.fromRGB(150, 115, 255),
-		Color3.fromRGB(195, 100, 255),
-		Color3.fromRGB(255, 150, 95),
-	}
-	self:Pulse((root.CFrame * CFrame.new(0, 0, -4)).Position, colors[stage], 6 + stage * 1.4, 0.18)
+	self:Pulse((root.CFrame * CFrame.new(0, 0, -4)).Position, style.Color, 6 + stage * 1.5, 0.18)
 
-	local target = self:ClosestEnemyInFront(root, cfg.AttackRange)
+	local targets = self:EnemiesInFront(root, style.Range or cfg.AttackRange, cfg.AttackArcDot)
+	local targetEntry = targets[1]
 	local stats = player:FindFirstChild("leaderstats")
-	if not target or not stats then return end
+	if not targetEntry or not stats then return end
 
-	local crit = math.random() <= cfg.CritChance
-	local multiplier = cfg.ComboMultipliers[stage] or 1
-	local damage = math.floor(cfg.BaseDamage * stats.Power.Value * multiplier * (crit and cfg.CritMultiplier or 1))
-	self:Hit(player, target, damage, crit, stage == 3 and 0.35 or 0)
+	local critChance = cfg.CritChance + (style.CritBonus or 0) + self.Context.Services.DataService:GetRelicCritBonus(player)
+	local crit = math.random() <= math.clamp(critChance, 0, 0.65)
+	local masteryMultiplier = self.Context.Services.ArsenalService:GetMasteryMultiplier(player, styleId)
+	local comboMultiplier = cfg.ComboMultipliers[stage] or 1
+	local damage = math.floor(cfg.BaseDamage * stats.Power.Value * (style.DamageMultiplier or 1) * masteryMultiplier * comboMultiplier * (crit and cfg.CritMultiplier or 1))
+	local stagger = (stage == 3 and 0.35 or 0) + (style.StaggerBonus or 0)
+	self:Hit(player, targetEntry.Model, damage, crit, stagger)
+
+	-- Void Scythe is deliberately slower, but its third swing cleaves a second target.
+	if styleId == "VoidScythe" and stage == 3 and targets[2] then
+		self:Hit(player, targets[2].Model, math.floor(damage * 0.68), false, 0.25)
+	end
+	-- Ember Katana rewards aggression with a small afterburn tick.
+	if styleId == "EmberKatana" and stage == 3 then
+		local burnTarget = targetEntry.Model
+		task.delay(0.35, function()
+			local d = self.Enemies[burnTarget]
+			if d and d.Alive then self:Hit(player, burnTarget, math.max(1, math.floor(damage * 0.18)), false, 0) end
+		end)
+	end
+
 	self.Context.Remotes.CombatFeedback:FireClient(player, "Combo", stage)
 end
 
 function CombatService:Ability(player, name)
+	if name ~= "Burst" and name ~= "Nova" then return end
 	local cfg = self.Context.Config.Game
-	local cooldowns = {
-		Dash = cfg.DashCooldown,
-		Burst = cfg.BurstCooldown,
-		Nova = cfg.NovaCooldown,
-	}
-	local cooldown = cooldowns[name]
-	if not cooldown then return end
-
+	local cooldown = name == "Nova" and cfg.NovaCooldown or cfg.BurstCooldown
 	local now = os.clock()
 	local key = tostring(player.UserId) .. ":" .. name
 	if now - (self.LastAbility[key] or 0) < cooldown then return end
@@ -393,68 +375,65 @@ function CombatService:Ability(player, name)
 	if not humanoid or humanoid.Health <= 0 or not root then return end
 	self.LastAbility[key] = now
 
-	if name == "Dash" then
-		local look = root.CFrame.LookVector
-		local flat = Vector3.new(look.X, 0, look.Z)
-		if flat.Magnitude > 0.1 then
-			root.AssemblyLinearVelocity = flat.Unit * cfg.DashSpeed + Vector3.new(0, math.max(root.AssemblyLinearVelocity.Y, 0), 0)
-			self:Pulse(root.Position, Color3.fromRGB(110, 185, 255), 6, 0.22)
-		end
-		return
-	end
-
 	local stats = player:FindFirstChild("leaderstats")
 	if not stats then return end
-
+	local style, styleId = self.Context.Services.ArsenalService:GetStyle(player)
+	local masteryMultiplier = self.Context.Services.ArsenalService:GetMasteryMultiplier(player, styleId)
 	local range = name == "Nova" and cfg.NovaRange or cfg.BurstRange
 	local damageMultiplier = name == "Nova" and cfg.NovaDamageMultiplier or cfg.BurstDamageMultiplier
-	local damage = math.floor(cfg.BaseDamage * stats.Power.Value * damageMultiplier)
-	local color = name == "Nova" and Color3.fromRGB(255, 75, 165) or Color3.fromRGB(210, 95, 255)
-	local stagger = name == "Nova" and 1.1 or 0.45
+	local damage = math.floor(cfg.BaseDamage * stats.Power.Value * damageMultiplier * (style.AbilityMultiplier or 1) * masteryMultiplier)
+	local color = name == "Nova" and style.Color:Lerp(Color3.fromRGB(255, 70, 175), 0.45) or style.Color
+	local stagger = (name == "Nova" and 1.1 or 0.45) + (style.StaggerBonus or 0) * 0.5
 
 	self:Pulse(root.Position, color, range * 2, name == "Nova" and 0.55 or 0.35)
-	if name == "Nova" then
-		task.delay(0.08, function() self:Pulse(root.Position, Color3.fromRGB(255, 205, 95), range * 1.45, 0.45) end)
-	end
+	if name == "Nova" then task.delay(0.08, function() self:Pulse(root.Position, Color3.fromRGB(255, 205, 95), range * 1.45, 0.45) end) end
 
 	local hits = {}
 	for model, data in pairs(self.Enemies) do
-		if data.Alive and model.Parent and model.PrimaryPart and (model.PrimaryPart.Position - root.Position).Magnitude <= range then
-			table.insert(hits, model)
-		end
+		if data.Alive and model.Parent and model.PrimaryPart and (model.PrimaryPart.Position - root.Position).Magnitude <= range then table.insert(hits, model) end
 	end
-	for _, model in ipairs(hits) do
-		self:Hit(player, model, damage, false, stagger)
-	end
-
-	if name == "Nova" then
-		self.Context:Notify(player, "RIFT NOVA unleashed!", "boss")
-	end
+	for _, model in ipairs(hits) do self:Hit(player, model, damage, false, stagger) end
+	if name == "Nova" then self.Context:Notify(player, style.Name .. " • RIFT NOVA!", "boss") end
 end
 
 function CombatService:BossSlam(model, data, targetRoot)
 	if not model.Parent or not model.PrimaryPart or not targetRoot then return end
 	local cfg = self.Context.Config.Game
-	local floorPosition = Vector3.new(targetRoot.Position.X, targetRoot.Position.Y - 3, targetRoot.Position.Z)
-	data.CastingUntil = os.clock() + cfg.BossTelegraphDelay
-	data.NextSlam = os.clock() + cfg.BossTelegraphInterval
+	local phase = data.Phase or 1
+	local delayTime = math.max(0.8, cfg.BossTelegraphDelay - (phase - 1) * 0.12)
+	local interval = cfg.BossTelegraphInterval / (1 + (phase - 1) * 0.22)
+	data.CastingUntil = os.clock() + delayTime
+	data.NextSlam = os.clock() + interval
 
-	local telegraph = self:Ring(floorPosition, cfg.BossSlamRange, Color3.fromRGB(255, 55, 105), cfg.BossTelegraphDelay)
-	self.Context:NotifyAll("Rift Tyrant is charging VOID CRUSH — move!", "boss")
+	local target = Vector3.new(targetRoot.Position.X, targetRoot.Position.Y - 3, targetRoot.Position.Z)
+	local positions = {target}
+	if phase >= 2 then table.insert(positions, model.PrimaryPart.Position - Vector3.new(0, 3, 0)) end
+	if phase >= 3 then
+		table.insert(positions, target + Vector3.new(15, 0, 0))
+		table.insert(positions, target + Vector3.new(-15, 0, 0))
+	end
 
-	task.delay(cfg.BossTelegraphDelay, function()
-		if telegraph and telegraph.Parent then telegraph:Destroy() end
+	local telegraphs = {}
+	for _, pos in ipairs(positions) do
+		table.insert(telegraphs, self:Ring(pos, cfg.BossSlamRange, phase == 3 and Color3.fromRGB(255, 35, 185) or Color3.fromRGB(255, 55, 105), delayTime))
+	end
+	self.Context:NotifyAll("Rift Tyrant PHASE " .. phase .. " • VOID CRUSH — move!", "boss")
+
+	task.delay(delayTime, function()
+		for _, telegraph in ipairs(telegraphs) do if telegraph and telegraph.Parent then telegraph:Destroy() end end
 		if not data.Alive or not model.Parent then return end
-		self:Pulse(floorPosition + Vector3.new(0, 2, 0), Color3.fromRGB(255, 60, 130), cfg.BossSlamRange * 2, 0.38)
+		for _, pos in ipairs(positions) do self:Pulse(pos + Vector3.new(0, 2, 0), Color3.fromRGB(255, 60, 130), cfg.BossSlamRange * 2, 0.38) end
 		for _, player in ipairs(Players:GetPlayers()) do
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			if humanoid and humanoid.Health > 0 and root then
-				local flat = Vector3.new(root.Position.X - floorPosition.X, 0, root.Position.Z - floorPosition.Z)
-				if flat.Magnitude <= cfg.BossSlamRange then
-					humanoid:TakeDamage(cfg.BossSlamDamage)
+				local hit = false
+				for _, pos in ipairs(positions) do
+					local flat = Vector3.new(root.Position.X - pos.X, 0, root.Position.Z - pos.Z)
+					if flat.Magnitude <= cfg.BossSlamRange then hit = true break end
 				end
+				if hit then humanoid:TakeDamage(math.floor(cfg.BossSlamDamage * (1 + (phase - 1) * 0.18))) end
 			end
 		end
 	end)
@@ -463,27 +442,16 @@ end
 function CombatService:StepAI(dt)
 	local cfg = self.Context.Config.Game
 	local now = os.clock()
-
 	for model, data in pairs(self.Enemies) do
 		if data.Alive and model.Parent and model.PrimaryPart then
 			local body = model.PrimaryPart
-			if now < (data.StaggerUntil or 0) then
-				continue
-			end
+			if now < (data.StaggerUntil or 0) then continue end
 
 			local player, playerRoot, distance = self:ClosestPlayer(body.Position, cfg.EnemyAggroRange)
-			local distanceFromSpawn = (body.Position - data.Spawn).Magnitude
-			if distanceFromSpawn > cfg.EnemyLeashRange then
-				player, playerRoot, distance = nil, nil, nil
-			end
+			if (body.Position - data.Spawn).Magnitude > cfg.EnemyLeashRange then player, playerRoot, distance = nil, nil, nil end
 
-			if data.Boss and player and playerRoot and now >= data.NextSlam and now >= data.CastingUntil then
-				self:BossSlam(model, data, playerRoot)
-			end
-
-			if now < (data.CastingUntil or 0) then
-				continue
-			end
+			if data.Boss and player and playerRoot and now >= data.NextSlam and now >= data.CastingUntil then self:BossSlam(model, data, playerRoot) end
+			if now < (data.CastingUntil or 0) then continue end
 
 			if data.Archetype == "Blinker" and player and playerRoot and distance and distance > 13 and distance < 33 and now >= data.NextSpecial then
 				data.NextSpecial = now + cfg.EnemyBlinkCooldown
@@ -501,10 +469,11 @@ function CombatService:StepAI(dt)
 			local attackRange = cfg.EnemyAttackRange
 			local attackCooldown = cfg.EnemyAttackCooldown
 			local damage = data.Damage
-			if data.Archetype == "Guardian" then
-				attackRange += 1.5
-				attackCooldown *= 1.3
-				damage = math.floor(damage * 1.2)
+			if data.Archetype == "Guardian" then attackRange += 1.5; attackCooldown *= 1.3; damage = math.floor(damage * 1.2) end
+			if data.Boss then
+				local phase = data.Phase or 1
+				damage = math.floor(damage * (1 + (phase - 1) * 0.22))
+				attackCooldown = attackCooldown / (1 + (phase - 1) * 0.16)
 			end
 
 			if player and playerRoot and distance and distance <= attackRange then
@@ -519,7 +488,7 @@ function CombatService:StepAI(dt)
 				local delta = target - body.Position
 				local flat = Vector3.new(delta.X, 0, delta.Z)
 				if flat.Magnitude > 0.5 then
-					local speed = data.Boss and cfg.BossMoveSpeed or cfg.EnemyMoveSpeed
+					local speed = data.Boss and cfg.BossMoveSpeed * (1 + ((data.Phase or 1) - 1) * 0.22) or cfg.EnemyMoveSpeed
 					if data.Archetype == "Charger" then speed *= 1.42 end
 					if data.Archetype == "Guardian" then speed *= 0.72 end
 					local nextPos = body.Position + flat.Unit * math.min(flat.Magnitude, speed * dt)
@@ -531,63 +500,91 @@ function CombatService:StepAI(dt)
 	end
 end
 
-function CombatService:GiveBlade(player)
-	local backpack = player:WaitForChild("Backpack")
+local function removeOldWeapons(player)
+	local backpack = player:FindFirstChild("Backpack")
 	for _, container in ipairs({backpack, player.Character}) do
 		if container then
-			local old = container:FindFirstChild("Rift Blade")
-			if old then old:Destroy() end
+			for _, child in ipairs(container:GetChildren()) do
+				if child:IsA("Tool") and (child:GetAttribute("AnimeRiftWeapon") == true or child.Name == "Rift Blade") then child:Destroy() end
+			end
 		end
 	end
+end
 
+function CombatService:GiveWeapon(player)
+	local backpack = player:WaitForChild("Backpack")
+	removeOldWeapons(player)
+	local style, styleId = self.Context.Services.ArsenalService:GetStyle(player)
 	local tool = Instance.new("Tool")
-	tool.Name = "Rift Blade"
+	tool.Name = style.Name
 	tool.ToolTip = "Click / Tap for a 3-hit combo"
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true
+	tool:SetAttribute("AnimeRiftWeapon", true)
+	tool:SetAttribute("StyleId", styleId)
 
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.45, 4.8, 0.65)
-	handle.Color = Color3.fromRGB(184, 118, 255)
+	handle.Color = style.Color
 	handle.Material = Enum.Material.Neon
 	handle.CanCollide = false
 	handle.Massless = true
+	if styleId == "EmberKatana" then
+		handle.Size = Vector3.new(0.3, 5.6, 0.4)
+		tool.Grip = CFrame.new(0, -1.6, 0) * CFrame.Angles(0, 0, math.rad(10))
+	elseif styleId == "FrostGauntlets" then
+		handle.Size = Vector3.new(1.7, 1.7, 1.7)
+		handle.Shape = Enum.PartType.Ball
+		tool.Grip = CFrame.new(0, -0.2, -0.2)
+	elseif styleId == "VoidScythe" then
+		handle.Size = Vector3.new(0.45, 6.2, 0.45)
+		tool.Grip = CFrame.new(0, -1.7, 0) * CFrame.Angles(0, 0, math.rad(-8))
+		local blade = Instance.new("Part")
+		blade.Name = "ScytheBlade"
+		blade.Size = Vector3.new(3.8, 0.38, 0.72)
+		blade.Material = Enum.Material.Neon
+		blade.Color = style.Color:Lerp(Color3.new(1, 1, 1), 0.2)
+		blade.CanCollide = false
+		blade.Massless = true
+		blade.CFrame = handle.CFrame * CFrame.new(1.5, 2.55, 0) * CFrame.Angles(0, 0, math.rad(-18))
+		blade.Parent = tool
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = handle
+		weld.Part1 = blade
+		weld.Parent = blade
+	else
+		handle.Size = Vector3.new(0.45, 4.8, 0.65)
+		tool.Grip = CFrame.new(0, -1.3, 0) * CFrame.Angles(0, 0, math.rad(12))
+	end
 	handle.Parent = tool
 
 	local light = Instance.new("PointLight")
-	light.Color = handle.Color
-	light.Brightness = 1.5
-	light.Range = 9
+	light.Color = style.Color
+	light.Brightness = 1.6
+	light.Range = 10
 	light.Parent = handle
-	tool.Grip = CFrame.new(0, -1.3, 0) * CFrame.Angles(0, 0, math.rad(12))
 	tool.Parent = backpack
-
-	task.delay(0.4, function()
+	task.delay(0.35, function()
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid and tool.Parent == backpack then humanoid:EquipTool(tool) end
 	end)
 end
 
+-- Backwards-compatible alias used by older PlayerService calls during hot reloads.
+function CombatService:GiveBlade(player)
+	self:GiveWeapon(player)
+end
+
 function CombatService:Start()
 	for _, zone in ipairs(self.Context.Config.Zones) do
-		for index = 1, self.Context.Config.Game.EnemyCountPerZone do
-			self:AddEnemy(zone, index, false)
-		end
+		for index = 1, self.Context.Config.Game.EnemyCountPerZone do self:AddEnemy(zone, index, false) end
 	end
 	self:AddEnemy(self.Context.Config.Zones[4], 0, true)
-
-	self.Context.Remotes.Attack.OnServerEvent:Connect(function(player)
-		self:Attack(player)
-	end)
+	self.Context.Remotes.Attack.OnServerEvent:Connect(function(player) self:Attack(player) end)
 	self.Context.Remotes.Ability.OnServerEvent:Connect(function(player, name)
-		if typeof(name) == "string" and (name == "Dash" or name == "Burst" or name == "Nova") then
-			self:Ability(player, name)
-		end
+		if typeof(name) == "string" and (name == "Burst" or name == "Nova") then self:Ability(player, name) end
 	end)
-	RunService.Heartbeat:Connect(function(dt)
-		self:StepAI(dt)
-	end)
+	RunService.Heartbeat:Connect(function(dt) self:StepAI(dt) end)
 end
 
 return CombatService
