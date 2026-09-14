@@ -58,6 +58,7 @@ local LootService = require(Modules:WaitForChild("LootService"))
 local WorldService = require(Modules:WaitForChild("WorldService"))
 local WorldDecorService = require(Modules:WaitForChild("WorldDecorService"))
 local OpenWorldSliceService = require(Modules:WaitForChild("OpenWorldSliceService"))
+local OpenWorldExpansionService = require(Modules:WaitForChild("OpenWorldExpansionService"))
 local CombatService = require(Modules:WaitForChild("CombatService"))
 local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
@@ -75,6 +76,7 @@ Context.Services.LootService = LootService.new(Context)
 Context.Services.WorldService = WorldService.new(Context)
 Context.Services.WorldDecorService = WorldDecorService.new(Context)
 Context.Services.OpenWorldSliceService = OpenWorldSliceService.new(Context)
+Context.Services.OpenWorldExpansionService = OpenWorldExpansionService.new(Context)
 Context.Services.CombatService = CombatService.new(Context)
 Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
@@ -83,10 +85,11 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
--- Keep CombatService server authoritative while the open-world layer owns encounter placement.
+-- Combat remains server-authoritative while open-world services own encounter placement.
 do
 	local combat = Context.Services.CombatService
 	local slice = Context.Services.OpenWorldSliceService
+	local expansion = Context.Services.OpenWorldExpansionService
 	local rawAddEnemy = combat.AddEnemy
 	function combat:AddEnemy(zone, index, boss)
 		local before = {}
@@ -94,7 +97,7 @@ do
 		rawAddEnemy(self, zone, index, boss)
 		for model, data in pairs(self.Enemies) do
 			if not before[model] and model.Parent and model.PrimaryPart then
-				local spawn = slice:GetEnemySpawn(zone.Id, index, boss)
+				local spawn = expansion:GetEnemySpawn(zone.Id, index, boss) or slice:GetEnemySpawn(zone.Id, index, boss)
 				if spawn then
 					data.Spawn = spawn
 					model:PivotTo(CFrame.new(spawn))
@@ -110,8 +113,7 @@ do
 		end
 	end
 
-	-- Hatcheries are intentional peaceful pockets. Enemies lose aggro when a player
-	-- enters one instead of camping the egg prompt and interrupting hatching.
+	-- Hatcheries are peaceful pockets. Normal enemies drop aggro while players hatch.
 	function combat:ClosestPlayer(position, range)
 		local bestPlayer, bestRoot, bestDistance = nil, nil, range
 		for _, player in ipairs(Players:GetPlayers()) do
@@ -132,6 +134,7 @@ end
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
 Context.Services.OpenWorldSliceService:Start()
+Context.Services.OpenWorldExpansionService:Start()
 Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
 Context.Services.ArsenalService:Start()
