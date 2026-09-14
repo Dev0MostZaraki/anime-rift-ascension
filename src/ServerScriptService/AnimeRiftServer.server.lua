@@ -48,6 +48,7 @@ end
 
 local Modules = script.Parent:WaitForChild("Modules")
 local DataService = require(Modules:WaitForChild("DataService"))
+local StatsService = require(Modules:WaitForChild("StatsService"))
 local QuestService = require(Modules:WaitForChild("QuestService"))
 local PetService = require(Modules:WaitForChild("PetService"))
 local ArsenalService = require(Modules:WaitForChild("ArsenalService"))
@@ -62,6 +63,7 @@ local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
 
 Context.Services.DataService = DataService.new(Context)
+Context.Services.StatsService = StatsService.new(Context)
 Context.Services.QuestService = QuestService.new(Context)
 Context.Services.PetService = PetService.new(Context)
 Context.Services.ArsenalService = ArsenalService.new(Context)
@@ -75,40 +77,9 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
--- 3.5 raises the visual combat arenas by 3.5 studs. Keep the combat service's spawn
--- formulas stable, then lift every newly-created enemy and its leash anchor here.
--- Because AddEnemy is wrapped once, the same grounding is applied to later respawns.
-do
-	local combat = Context.Services.CombatService
-	local rawAddEnemy = combat.AddEnemy
-	local lift = Vector3.new(0, 3.5, 0)
-	function combat:AddEnemy(zone, index, boss)
-		local before = {}
-		for model in pairs(self.Enemies) do before[model] = true end
-		rawAddEnemy(self, zone, index, boss)
-		for model, data in pairs(self.Enemies) do
-			if not before[model] and model.Parent and model.PrimaryPart then
-				data.Spawn += lift
-				model:PivotTo(model:GetPivot() + lift)
-				break
-			end
-		end
-	end
-end
-
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
-
-local decor = Context.WorldFolder and Context.WorldFolder:FindFirstChild("Decor")
-if decor then
-	for _, object in ipairs(decor:GetDescendants()) do
-		if object:IsA("BasePart") and object.Name == "VoidBridgeShard" then
-			object.CanCollide = false
-			object.CanQuery = false
-		end
-	end
-end
-
+Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
 Context.Services.ArsenalService:Start()
 Context.Services.LootService:Start()
