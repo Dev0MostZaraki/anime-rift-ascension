@@ -15,9 +15,7 @@ function PetService:GetEquippedCount(player)
 	if not inventory then return 0 end
 	local count = 0
 	for _, pet in ipairs(inventory:GetChildren()) do
-		if pet:GetAttribute("Equipped") == true then
-			count += 1
-		end
+		if pet:GetAttribute("Equipped") == true then count += 1 end
 	end
 	return count
 end
@@ -45,7 +43,6 @@ function PetService:Hatch(player, eggId)
 		self.Context:Notify(player, "Unlock this zone first.", "error")
 		return
 	end
-
 	if stats.Coins.Value < egg.Cost then
 		self.Context:Notify(player, "You need " .. egg.Cost .. " Coins.", "error")
 		return
@@ -69,9 +66,7 @@ function PetService:Equip(player, petId)
 		table.sort(pets, function(a, b)
 			return (tonumber(a:GetAttribute("Bonus")) or 0) > (tonumber(b:GetAttribute("Bonus")) or 0)
 		end)
-		for _, pet in ipairs(pets) do
-			pet:SetAttribute("Equipped", false)
-		end
+		for _, pet in ipairs(pets) do pet:SetAttribute("Equipped", false) end
 		for i = 1, math.min(self.Context.Config.Game.MaxEquippedPets, #pets) do
 			pets[i]:SetAttribute("Equipped", true)
 		end
@@ -83,7 +78,6 @@ function PetService:Equip(player, petId)
 
 	local pet = inventory:FindFirstChild(petId)
 	if not pet then return end
-
 	if pet:GetAttribute("Equipped") == true then
 		pet:SetAttribute("Equipped", false)
 	else
@@ -93,25 +87,23 @@ function PetService:Equip(player, petId)
 		end
 		pet:SetAttribute("Equipped", true)
 	end
-
 	self.Context.Services.DataService:RecalculatePower(player)
 	self:RebuildFollowers(player)
 end
 
 function PetService:ClearFollowers(player)
 	local folder = self.Followers[player]
-	if folder and folder.Parent then
-		folder:Destroy()
-	end
+	if folder and folder.Parent then folder:Destroy() end
 	self.Followers[player] = nil
 end
 
 local function billboard(parent, text, color)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.new(0, 150, 0, 36)
-	gui.StudsOffset = Vector3.new(0, 2.7, 0)
+	gui.Size = UDim2.new(0, 124, 0, 28)
+	gui.StudsOffset = Vector3.new(0, 2.45, 0)
 	gui.AlwaysOnTop = true
-	gui.MaxDistance = 100
+	gui.MaxDistance = 32
+	gui.LightInfluence = 0
 	gui.Parent = parent
 
 	local label = Instance.new("TextLabel")
@@ -119,10 +111,24 @@ local function billboard(parent, text, color)
 	label.BackgroundTransparency = 1
 	label.Text = text
 	label.TextColor3 = color
-	label.TextStrokeTransparency = 0.3
+	label.TextStrokeTransparency = 0.42
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBold
 	label.Parent = gui
+end
+
+local function visualPart(model, name, size, color, material)
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	part.Material = material or Enum.Material.Neon
+	part.Color = color
+	part.Parent = model
+	return part
 end
 
 function PetService:RebuildFollowers(player)
@@ -150,29 +156,14 @@ function PetService:RebuildFollowers(player)
 			model:SetAttribute("Slot", slot)
 			model.Parent = folder
 
-			local body = Instance.new("Part")
-			body.Name = "Body"
-			body.Size = Vector3.new(2.8, 2.8, 2.8)
+			local body = visualPart(model, "Body", Vector3.new(2.35, 2.35, 2.35), color)
 			body.Shape = Enum.PartType.Ball
-			body.Anchored = true
-			body.CanCollide = false
-			body.CanTouch = false
-			body.CanQuery = false
-			body.Material = Enum.Material.Neon
-			body.Color = color
-			body.Parent = model
-
-			local core = Instance.new("Part")
-			core.Name = "Core"
-			core.Size = Vector3.new(1.15, 1.15, 1.15)
+			local core = visualPart(model, "Core", Vector3.new(0.82, 0.82, 0.82), Color3.fromRGB(250, 250, 255))
 			core.Shape = Enum.PartType.Ball
-			core.Anchored = true
-			core.CanCollide = false
-			core.CanTouch = false
-			core.CanQuery = false
-			core.Material = Enum.Material.Neon
-			core.Color = Color3.fromRGB(245, 245, 255)
-			core.Parent = model
+			local left = visualPart(model, "LeftOrb", Vector3.new(0.55, 0.55, 0.55), color:Lerp(Color3.new(1, 1, 1), 0.35))
+			left.Shape = Enum.PartType.Ball
+			local right = visualPart(model, "RightOrb", Vector3.new(0.55, 0.55, 0.55), color:Lerp(Color3.new(1, 1, 1), 0.35))
+			right.Shape = Enum.PartType.Ball
 
 			billboard(body, pet.Value, color)
 			model.PrimaryPart = body
@@ -198,14 +189,18 @@ function PetService:Start()
 						local slot = model:GetAttribute("Slot") or 1
 						local body = model:FindFirstChild("Body")
 						local core = model:FindFirstChild("Core")
+						local left = model:FindFirstChild("LeftOrb")
+						local right = model:FindFirstChild("RightOrb")
 						if body and core then
-							local xOffsets = {-3.5, 0, 3.5}
+							local xOffsets = {-4.4, 0, 4.4}
 							local x = xOffsets[slot] or 0
-							local back = 4.3 + math.abs(slot - 2) * 0.7
-							local bob = math.sin(now * 3 + slot) * 0.32
-							local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.3 + bob, 0)
+							local back = 5.4 + math.abs(slot - 2) * 0.9
+							local bob = math.sin(now * 3 + slot * 1.7) * 0.3
+							local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.5 + bob, 0)
 							body.CFrame = CFrame.new(target)
 							core.CFrame = CFrame.new(target)
+							if left then left.CFrame = CFrame.new(target + Vector3.new(-1.45, 0.15, 0)) end
+							if right then right.CFrame = CFrame.new(target + Vector3.new(1.45, 0.15, 0)) end
 						end
 					end
 				end
