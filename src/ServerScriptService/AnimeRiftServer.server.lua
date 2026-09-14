@@ -30,6 +30,7 @@ local Context = {
 		EquipPet = makeRemote("EquipPet"),
 		EquipRelic = makeRemote("EquipRelic"),
 		StyleAction = makeRemote("StyleAction"),
+		DevCommand = makeRemote("DevCommand"),
 		Notify = makeRemote("Notify"),
 		WorldEvent = makeRemote("WorldEvent"),
 		ZoneEntered = makeRemote("ZoneEntered"),
@@ -56,6 +57,7 @@ local WorldDecorService = require(Modules:WaitForChild("WorldDecorService"))
 local CombatService = require(Modules:WaitForChild("CombatService"))
 local DashService = require(Modules:WaitForChild("DashService"))
 local EventService = require(Modules:WaitForChild("EventService"))
+local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
 
 Context.Services.DataService = DataService.new(Context)
@@ -68,6 +70,7 @@ Context.Services.WorldDecorService = WorldDecorService.new(Context)
 Context.Services.CombatService = CombatService.new(Context)
 Context.Services.DashService = DashService.new(Context)
 Context.Services.EventService = EventService.new(Context)
+Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
 Context.Services.WorldService:Start()
@@ -78,6 +81,7 @@ Context.Services.LootService:Start()
 Context.Services.CombatService:Start()
 Context.Services.DashService:Start()
 Context.Services.EventService:Start()
+Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
 
 print(string.format("[%s] server started • %s", Config.Game.Name, Config.Game.Version))
