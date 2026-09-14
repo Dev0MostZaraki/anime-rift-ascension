@@ -77,6 +77,28 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
+-- Keep the existing combat module compatible while 4.0 moves boss balance into Config.
+do
+	local combat = Context.Services.CombatService
+	local rawAddEnemy = combat.AddEnemy
+	function combat:AddEnemy(zone, index, boss)
+		local before = {}
+		for model in pairs(self.Enemies) do before[model] = true end
+		rawAddEnemy(self, zone, index, boss)
+		if boss then
+			for model, data in pairs(self.Enemies) do
+				if not before[model] and data.Boss then
+					data.HP = Config.Game.BossHP or data.HP
+					data.MaxHP = Config.Game.BossHP or data.MaxHP
+					data.Damage = Config.Game.BossDamage or data.Damage
+					self:UpdateLabel(model)
+					break
+				end
+			end
+		end
+	end
+end
+
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
 Context.Services.StatsService:Start()
