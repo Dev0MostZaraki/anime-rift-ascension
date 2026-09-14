@@ -10,6 +10,7 @@ function OpenWorldSliceService.new(context)
 		Context = context,
 		Claims = {},
 		RegionClock = 0,
+		SafeZones = {},
 	}, OpenWorldSliceService)
 end
 
@@ -144,22 +145,41 @@ local function building(parent, name, center, width, depth, wall, roofColor, ope
 	return folder
 end
 
+local function trailSegment(parent, a, b, width)
+	local delta = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+	if delta.Magnitude < 1 then return end
+	local mid = a:Lerp(b, 0.5)
+	part(parent, "WildTrail", Vector3.new(width or 7, 0.22, delta.Magnitude + 1.3), CFrame.lookAt(Vector3.new(mid.X, 2.12, mid.Z), Vector3.new(mid.X, 2.12, mid.Z) + delta.Unit), Color3.fromRGB(116, 101, 79), Enum.Material.Ground, 0, true)
+end
+
 function OpenWorldSliceService:SculptTerrain()
 	local terrain = Workspace.Terrain
-	local c = self.Context.Config.Zones[1].Center
 	local hills = {
 		{Vector3.new(-92, -11, 132), 27}, {Vector3.new(90, -12, 142), 30},
 		{Vector3.new(-86, -12, 215), 31}, {Vector3.new(84, -11, 225), 29},
 		{Vector3.new(-50, -13, 270), 32}, {Vector3.new(45, -12, 282), 35},
 		{Vector3.new(-118, -13, 180), 24}, {Vector3.new(116, -13, 193), 25},
+		{Vector3.new(-36, -15, 115), 20}, {Vector3.new(30, -16, 243), 24},
+		{Vector3.new(102, -15, 267), 28}, {Vector3.new(-105, -15, 262), 26},
 	}
 	for i, data in ipairs(hills) do
 		terrain:FillBall(data[1], data[2], i % 4 == 0 and Enum.Material.Rock or Enum.Material.Grass)
 	end
 
-	-- Widen the watercourse that visually leads from Haven into Verdant.
-	terrain:FillBlock(CFrame.new(48, 0.3, 155), Vector3.new(21, 8, 72), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(48, -1.6, 155), Vector3.new(18, 4, 72), Enum.Material.Water)
+	-- Ground variation prevents Verdant from reading as one giant green carpet.
+	for _, patch in ipairs({
+		{Vector3.new(-46, -0.5, 132), Vector3.new(36, 4, 26), Enum.Material.Ground},
+		{Vector3.new(28, -0.5, 205), Vector3.new(42, 4, 30), Enum.Material.Ground},
+		{Vector3.new(-61, -0.6, 245), Vector3.new(34, 4, 28), Enum.Material.Mud},
+		{Vector3.new(78, -0.6, 252), Vector3.new(38, 4, 28), Enum.Material.Ground},
+	}) do
+		terrain:FillBlock(CFrame.new(patch[1]), patch[2], patch[3])
+	end
+
+	-- Widen and deepen the watercourse that visually leads from Haven into Verdant.
+	terrain:FillBlock(CFrame.new(48, 0.3, 155), Vector3.new(23, 9, 78), Enum.Material.Air)
+	terrain:FillBlock(CFrame.new(48, -1.8, 155), Vector3.new(19, 4.4, 78), Enum.Material.Water)
+	terrain:FillBall(Vector3.new(48, -4, 196), 18, Enum.Material.Rock)
 
 	local clouds = terrain:FindFirstChild("AnimeRiftClouds")
 	if not clouds then
@@ -167,8 +187,8 @@ function OpenWorldSliceService:SculptTerrain()
 		clouds.Name = "AnimeRiftClouds"
 		clouds.Parent = terrain
 	end
-	clouds.Cover = 0.32
-	clouds.Density = 0.42
+	clouds.Cover = 0.28
+	clouds.Density = 0.36
 	clouds.Color = Color3.fromRGB(240, 239, 233)
 end
 
@@ -177,7 +197,6 @@ function OpenWorldSliceService:BuildHaven(folder)
 	local darkRoof = Color3.fromRGB(72, 70, 63)
 	local greenRoof = Color3.fromRGB(61, 78, 62)
 
-	-- A stronger village silhouette: guild hall, forge and companion stable.
 	local guild = building(folder, "HavenGuildHall", Vector3.new(0, 2.9, -67), 42, 24, wall, darkRoof, false)
 	local guildBoard = part(guild, "GuildBoard", Vector3.new(16, 4.2, 0.5), CFrame.new(0, 8, -54.7), Color3.fromRGB(93, 69, 47), Enum.Material.WoodPlanks)
 	label(guildBoard, "RIFT HAVEN GUILD", Vector3.new(0, 0, 0), 44)
@@ -196,7 +215,6 @@ function OpenWorldSliceService:BuildHaven(folder)
 	local stable = building(folder, "CompanionStable", Vector3.new(-82, 2.7, 18), 28, 20, Color3.fromRGB(172, 161, 133), greenRoof, true)
 	label(stable:FindFirstChild("Floor"), "COMPANION LODGE", Vector3.new(0, 5.8, 0), 34)
 
-	-- A physical gateway toward the first region makes the road feel like a journey.
 	local gateZ = 84
 	for _, x in ipairs({-12, 12}) do
 		part(folder, "VerdantGatePost", Vector3.new(2.2, 13, 2.2), CFrame.new(x, 8.5, gateZ), Color3.fromRGB(86, 62, 42), Enum.Material.Wood)
@@ -204,10 +222,7 @@ function OpenWorldSliceService:BuildHaven(folder)
 	part(folder, "VerdantGateBeam", Vector3.new(29, 2, 2.8), CFrame.new(0, 14.5, gateZ), Color3.fromRGB(98, 69, 45), Enum.Material.Wood)
 	sign(folder, Vector3.new(0, 2.1, gateZ + 1.6), "VERDANT ROAD", 0)
 
-	for _, pos in ipairs({
-		Vector3.new(-22, 2.2, 71), Vector3.new(22, 2.2, 71),
-		Vector3.new(-20, 2.2, 102), Vector3.new(20, 2.2, 102),
-	}) do lantern(folder, pos) end
+	for _, pos in ipairs({Vector3.new(-22, 2.2, 71), Vector3.new(22, 2.2, 71), Vector3.new(-20, 2.2, 102), Vector3.new(20, 2.2, 102)}) do lantern(folder, pos) end
 end
 
 function OpenWorldSliceService:BuildVerdantBridge(folder)
@@ -227,18 +242,27 @@ end
 function OpenWorldSliceService:BuildVerdantLandmarks(folder)
 	local c = self.Context.Config.Zones[1].Center
 	local leaf = Color3.fromRGB(64, 105, 63)
-
-	-- Layer the main approach so the player stops seeing the whole region at once.
 	local random = Random.new(4101)
-	for i = 1, 44 do
-		local x = random:NextNumber(-102, 102)
-		local z = random:NextNumber(105, 292)
+	for _ = 1, 58 do
+		local x = random:NextNumber(-110, 110)
+		local z = random:NextNumber(104, 300)
 		if math.abs(x) < 16 and z < 218 then continue end
 		if x > 34 and x < 63 and z > 118 and z < 190 then continue end
-		tree(folder, Vector3.new(x, 2.1, z), random:NextNumber(0.72, 1.12), leaf:Lerp(Color3.fromRGB(94, 122, 70), random:NextNumber(0, 0.22)))
+		if x > 66 and z > 238 then continue end
+		tree(folder, Vector3.new(x, 2.1, z), random:NextNumber(0.72, 1.15), leaf:Lerp(Color3.fromRGB(94, 122, 70), random:NextNumber(0, 0.22)))
 	end
 
 	self:BuildVerdantBridge(folder)
+
+	-- Curved trail network: the player gets choices instead of one straight highway.
+	local trail = {
+		Vector3.new(0,2.15,96), Vector3.new(-7,2.15,121), Vector3.new(5,2.15,145),
+		Vector3.new(-8,2.15,169), Vector3.new(4,2.15,194), Vector3.new(-10,2.15,220), Vector3.new(0,2.15,245),
+	}
+	for i = 1, #trail - 1 do trailSegment(folder, trail[i], trail[i + 1], 7.5) end
+	trailSegment(folder, Vector3.new(-3,2.15,168), Vector3.new(-52,2.15,199), 6)
+	trailSegment(folder, Vector3.new(4,2.15,194), Vector3.new(48,2.15,151), 6)
+	trailSegment(folder, Vector3.new(-8,2.15,220), Vector3.new(-57,2.15,243), 5.5)
 
 	-- Bandit camp / combat POI on the western trail.
 	local camp = c + Vector3.new(-48, 2.3, 9)
@@ -255,6 +279,17 @@ function OpenWorldSliceService:BuildVerdantLandmarks(folder)
 	fire.Size = 3.2
 	fire.Heat = 3
 	fire.Parent = campfire
+
+	-- Bamboo Hollow visually separates the eastern half of Verdant.
+	local bambooCenter = c + Vector3.new(58, 2, -12)
+	for ring = 1, 3 do
+		for i = 1, 8 do
+			local angle = (i / 8) * math.pi * 2 + ring * 0.21
+			local radius = 8 + ring * 7
+			local pos = bambooCenter + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+			part(folder, "BambooHollow", Vector3.new(0.9, 12 + ring * 1.7, 0.9), CFrame.new(pos + Vector3.new(0, 7, 0)), Color3.fromRGB(74, 112, 65), Enum.Material.Wood)
+		end
+	end
 
 	-- Quiet shrine and a small stepped approach on the opposite side.
 	local shrine = c + Vector3.new(-57, 2.5, 53)
@@ -277,7 +312,6 @@ function OpenWorldSliceService:BuildVerdantLandmarks(folder)
 	local caveDark = part(folder, "CaveMouth", Vector3.new(15, 12, 0.6), CFrame.new(cave + Vector3.new(0, 6, 1.3)), Color3.fromRGB(24, 28, 25), Enum.Material.SmoothPlastic, 0, false)
 	label(caveDark, "SEALED GROTTO", Vector3.new(0, 8, 0), 28)
 
-	-- Trail lights are warm and sparse, deliberately not neon.
 	for _, pos in ipairs({
 		Vector3.new(-13,2.2,118), Vector3.new(13,2.2,125), Vector3.new(-12,2.2,153), Vector3.new(10,2.2,176),
 		Vector3.new(-15,2.2,211), Vector3.new(13,2.2,237),
@@ -286,6 +320,59 @@ function OpenWorldSliceService:BuildVerdantLandmarks(folder)
 	sign(folder, Vector3.new(-16, 2.2, 132), "OLD DOJO  ↑", -12)
 	sign(folder, Vector3.new(24, 2.2, 168), "RIVER PATH  →", 10)
 	sign(folder, Vector3.new(-27, 2.2, 221), "SHRINE TRAIL  ←", -8)
+	sign(folder, Vector3.new(35, 2.2, 216), "BAMBOO HOLLOW  →", 10)
+end
+
+function OpenWorldSliceService:GetEggSanctuaryPosition(zoneId)
+	local zone = self.Context.Config.Zones[zoneId]
+	if not zone then return nil end
+	local offsets = {
+		[1] = Vector3.new(82, 3, 70),
+		[2] = Vector3.new(82, 3, 68),
+		[3] = Vector3.new(-82, 3, 68),
+		[4] = Vector3.new(-82, 3, 68),
+	}
+	return zone.Center + offsets[zoneId]
+end
+
+function OpenWorldSliceService:IsSafeZone(position)
+	local flat = Vector3.new(position.X, 0, position.Z)
+	local radius = self.Context.Config.Game.EggSanctuaryRadius or 26
+	for _, center in pairs(self.SafeZones) do
+		local c = Vector3.new(center.X, 0, center.Z)
+		if (flat - c).Magnitude <= radius then return true end
+	end
+	return false
+end
+
+function OpenWorldSliceService:BuildEggSanctuaries(folder)
+	local map = self.Context.Services.WorldService.MapFolder
+	for zoneId, zone in ipairs(self.Context.Config.Zones) do
+		local center = self:GetEggSanctuaryPosition(zoneId)
+		if center then
+			self.SafeZones[zoneId] = center
+			local pedestal = map and map:FindFirstChild("EggPedestal_" .. zoneId)
+			local orb = map and map:FindFirstChild("EggOrb_" .. zoneId)
+			if pedestal then pedestal.CFrame = CFrame.new(center + Vector3.new(0, 1.25, 0)) end
+			if orb then orb.CFrame = CFrame.new(center + Vector3.new(0, 5.4, 0)) end
+
+			part(folder, "EggSanctuaryGround_" .. zoneId, Vector3.new(44, 0.35, 38), CFrame.new(center + Vector3.new(0, -0.55, 0)), Color3.fromRGB(112, 105, 87), Enum.Material.Ground)
+			local marker = part(folder, "EggSanctuaryMarker_" .. zoneId, Vector3.new(3.5, 6.5, 3.5), CFrame.new(center + Vector3.new(-15, 3.2, -12)), Color3.fromRGB(90, 88, 78), Enum.Material.Slate)
+			label(marker, "HATCHERY\nPEACEFUL GROUND", Vector3.new(0, 5.2, 0), 38)
+			for i = 1, 8 do
+				local angle = (i / 8) * math.pi * 2
+				local radius = 19
+				local pos = center + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+				if zoneId == 1 then
+					tree(folder, pos, 0.74, Color3.fromRGB(72, 111, 68))
+				else
+					rock(folder, pos + Vector3.new(0, 1.2, 0), Vector3.new(4.5, 3.2, 4.2), zone.Color:Lerp(Color3.fromRGB(90, 88, 80), 0.55))
+				end
+			end
+			lantern(folder, center + Vector3.new(-10, 0, 11))
+			lantern(folder, center + Vector3.new(10, 0, 11))
+		end
+	end
 end
 
 function OpenWorldSliceService:ClaimKey(player, id)
@@ -328,6 +415,7 @@ function OpenWorldSliceService:BuildExploration(folder)
 	self:BuildChest(folder, "verdant_river", Vector3.new(69, 2.2, 176), "normal")
 	self:BuildChest(folder, "verdant_shrine", c + Vector3.new(-58, 5.9, 43), "hidden")
 	self:BuildChest(folder, "verdant_cave", c + Vector3.new(58, 2.2, 61), "hidden")
+	self:BuildChest(folder, "verdant_bamboo", c + Vector3.new(69, 2.2, -17), "hidden")
 end
 
 function OpenWorldSliceService:GetEnemySpawn(zoneId, index, boss)
@@ -380,7 +468,7 @@ function OpenWorldSliceService:UpdateRegions()
 		else
 			for _, zone in ipairs(self.Context.Config.Zones) do
 				local center = Vector3.new(zone.Center.X, 0, zone.Center.Z)
-				if (flat - center).Magnitude <= 112 then
+				if (flat - center).Magnitude <= 118 then
 					regionName, color = zone.Name, zone.Color
 					break
 				end
@@ -402,6 +490,7 @@ function OpenWorldSliceService:Start()
 	folder.Parent = self.Context.WorldFolder
 	self:BuildHaven(folder)
 	self:BuildVerdantLandmarks(folder)
+	self:BuildEggSanctuaries(folder)
 	self:BuildExploration(folder)
 
 	RunService.Heartbeat:Connect(function(dt)
