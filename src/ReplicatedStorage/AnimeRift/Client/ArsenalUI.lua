@@ -15,6 +15,13 @@ local function stroke(parent, color, transparency)
 	s.Parent = parent
 end
 
+local function gradient(parent, a, b)
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(a, b)
+	g.Rotation = 90
+	g.Parent = parent
+end
+
 local function label(parent, text, size, position, fontSize, bold)
 	local l = Instance.new("TextLabel")
 	l.BackgroundTransparency = 1
@@ -32,16 +39,18 @@ end
 local function button(parent, text, size, position, color)
 	local b = Instance.new("TextButton")
 	b.Size = size
-	b.Position = position
-	b.BackgroundColor3 = color or Color3.fromRGB(75, 61, 112)
+	b.Position = position or UDim2.new()
+	b.BackgroundColor3 = color or Color3.fromRGB(68, 57, 98)
 	b.BorderSizePixel = 0
 	b.Text = text
 	b.TextColor3 = Color3.fromRGB(248, 248, 252)
-	b.TextSize = 14
+	b.TextSize = 13
 	b.Font = Enum.Font.GothamBold
 	b.AutoButtonColor = true
 	b.Parent = parent
-	corner(b, 9)
+	corner(b, 10)
+	stroke(b, b.BackgroundColor3:Lerp(Color3.new(1,1,1), 0.20), 0.58)
+	gradient(b, b.BackgroundColor3:Lerp(Color3.new(1,1,1), 0.06), b.BackgroundColor3:Lerp(Color3.new(0,0,0), 0.08))
 	return b
 end
 
@@ -55,29 +64,35 @@ function ArsenalUI.new(gui, player, profile, stats, config, styleRemote)
 	self.StyleRemote = styleRemote
 	self.Connections = {}
 
-	self.OpenButton = button(gui, "ARSENAL", UDim2.new(0, 150, 0, 46), UDim2.new(1, -166, 0, 126), Color3.fromRGB(93, 57, 132))
+	local dock = gui:FindFirstChild("MenuDock") or gui
+	self.OpenButton = button(dock, "ARSENAL", UDim2.new(1, 0, 0, 42), UDim2.new(), Color3.fromRGB(75, 49, 101))
+	self.OpenButton.LayoutOrder = 30
+
 	self.Panel = Instance.new("Frame")
 	self.Panel.Name = "ArsenalPanel"
-	self.Panel.Size = UDim2.new(0, 610, 0, 470)
-	self.Panel.Position = UDim2.new(0.5, -305, 0.5, -235)
-	self.Panel.BackgroundColor3 = Color3.fromRGB(17, 19, 28)
+	self.Panel.Size = UDim2.new(0, 630, 0, 480)
+	self.Panel.Position = UDim2.new(0.5, -315, 0.5, -240)
+	self.Panel.BackgroundColor3 = Color3.fromRGB(14, 16, 24)
 	self.Panel.BorderSizePixel = 0
 	self.Panel.Visible = false
 	self.Panel.Parent = gui
-	corner(self.Panel, 16)
-	stroke(self.Panel, Color3.fromRGB(170, 100, 235), 0.25)
+	corner(self.Panel, 18)
+	stroke(self.Panel, Color3.fromRGB(166, 96, 230), 0.28)
+	gradient(self.Panel, Color3.fromRGB(23, 21, 34), Color3.fromRGB(12, 14, 21))
 
 	label(self.Panel, "RIFT ARSENAL", UDim2.new(1, -90, 0, 38), UDim2.new(0, 18, 0, 12), 22, true)
-	local sub = label(self.Panel, "Unlock fighting styles, build mastery, and change your combat identity.", UDim2.new(1, -110, 0, 30), UDim2.new(0, 18, 0, 48), 13, false)
-	sub.TextColor3 = Color3.fromRGB(180, 180, 200)
-	local close = button(self.Panel, "X", UDim2.new(0, 42, 0, 36), UDim2.new(1, -56, 0, 10))
+	local sub = label(self.Panel, "Choose a combat identity. Every style changes tempo, range and scaling.", UDim2.new(1, -120, 0, 30), UDim2.new(0, 18, 0, 48), 12, false)
+	sub.TextColor3 = Color3.fromRGB(174, 177, 195)
+	local close = button(self.Panel, "X", UDim2.new(0, 42, 0, 36), UDim2.new(1, -56, 0, 10), Color3.fromRGB(61, 47, 76))
 
 	self.List = Instance.new("ScrollingFrame")
 	self.List.Size = UDim2.new(1, -28, 1, -94)
 	self.List.Position = UDim2.new(0, 14, 0, 82)
-	self.List.BackgroundColor3 = Color3.fromRGB(24, 27, 38)
+	self.List.BackgroundColor3 = Color3.fromRGB(20, 23, 34)
+	self.List.BackgroundTransparency = 0.06
 	self.List.BorderSizePixel = 0
-	self.List.ScrollBarThickness = 6
+	self.List.ScrollBarThickness = 5
+	self.List.ScrollBarImageColor3 = Color3.fromRGB(120, 92, 164)
 	self.List.CanvasSize = UDim2.new()
 	self.List.Parent = self.Panel
 	corner(self.List, 12)
@@ -125,44 +140,45 @@ function ArsenalUI:Rebuild()
 		local masteryBonus = math.min(self.Config.Game.MasteryDamageCap, mastery * self.Config.Game.MasteryDamagePerPoint)
 
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, -4, 0, 88)
-		row.BackgroundColor3 = equipped and Color3.fromRGB(43, 51, 66) or Color3.fromRGB(32, 35, 48)
+		row.Size = UDim2.new(1, -4, 0, 92)
+		row.BackgroundColor3 = equipped and Color3.fromRGB(37, 43, 56) or Color3.fromRGB(28, 31, 43)
 		row.BorderSizePixel = 0
 		row.LayoutOrder = index
 		row.Parent = self.List
-		corner(row, 11)
+		corner(row, 12)
+		stroke(row, equipped and style.Color or Color3.fromRGB(77, 79, 94), equipped and 0.50 or 0.80)
 
 		local bar = Instance.new("Frame")
-		bar.Size = UDim2.new(0, 7, 1, -12)
-		bar.Position = UDim2.new(0, 6, 0, 6)
+		bar.Size = UDim2.new(0, 6, 1, -14)
+		bar.Position = UDim2.new(0, 7, 0, 7)
 		bar.BackgroundColor3 = style.Color
 		bar.BorderSizePixel = 0
 		bar.Parent = row
 		corner(bar, 4)
 
-		label(row, style.Name, UDim2.new(0.42, 0, 0, 24), UDim2.new(0, 24, 0, 8), 16, true)
-		local desc = label(row, style.Description, UDim2.new(0.56, 0, 0, 34), UDim2.new(0, 24, 0, 30), 11, false)
+		label(row, string.upper(style.Name), UDim2.new(0.42, 0, 0, 24), UDim2.new(0, 24, 0, 8), 15, true)
+		local desc = label(row, style.Description, UDim2.new(0.56, 0, 0, 34), UDim2.new(0, 24, 0, 31), 11, false)
 		desc.TextWrapped = true
-		desc.TextColor3 = Color3.fromRGB(186, 188, 202)
-		local statsText = string.format("DMG x%.2f  •  %.2fs  •  Range %.1f  •  Crit +%.0f%%", style.DamageMultiplier, style.AttackCooldown, style.Range, style.CritBonus * 100)
-		local statLine = label(row, statsText, UDim2.new(0.62, 0, 0, 20), UDim2.new(0, 24, 1, -23), 11, true)
+		desc.TextColor3 = Color3.fromRGB(181, 185, 202)
+		local statsText = string.format("DMG x%.2f   /   %.2fs   /   %.1f RANGE   /   +%.0f%% CRIT", style.DamageMultiplier, style.AttackCooldown, style.Range, style.CritBonus * 100)
+		local statLine = label(row, statsText, UDim2.new(0.66, 0, 0, 20), UDim2.new(0, 24, 1, -23), 10, true)
 		statLine.TextColor3 = style.Color
 
-		local masteryLabel = label(row, "Mastery " .. mastery .. "  •  +" .. string.format("%.1f", masteryBonus * 100) .. "% DMG", UDim2.new(0, 180, 0, 20), UDim2.new(1, -310, 0, 12), 11, true)
+		local masteryLabel = label(row, "MASTERY " .. mastery .. "  •  +" .. string.format("%.1f", masteryBonus * 100) .. "% DMG", UDim2.new(0, 190, 0, 20), UDim2.new(1, -322, 0, 12), 10, true)
 		masteryLabel.TextXAlignment = Enum.TextXAlignment.Right
+		masteryLabel.TextColor3 = Color3.fromRGB(193, 196, 210)
 
-		local actionText
-		local actionColor
+		local actionText, actionColor
 		if equipped then
-			actionText, actionColor = "EQUIPPED", Color3.fromRGB(55, 120, 82)
+			actionText, actionColor = "EQUIPPED", Color3.fromRGB(46, 111, 75)
 		elseif unlocked then
-			actionText, actionColor = "EQUIP", Color3.fromRGB(83, 76, 145)
+			actionText, actionColor = "EQUIP", Color3.fromRGB(69, 61, 116)
 		else
-			actionText = "UNLOCK  Lv." .. style.UnlockLevel .. " • " .. style.UnlockCost
-			actionColor = Color3.fromRGB(135, 76, 70)
+			actionText = "UNLOCK  LV." .. style.UnlockLevel .. "  •  " .. style.UnlockCost
+			actionColor = Color3.fromRGB(117, 59, 60)
 		end
-		local action = button(row, actionText, UDim2.new(0, 190, 0, 38), UDim2.new(1, -202, 0, 38), actionColor)
-		action.TextSize = 12
+		local action = button(row, actionText, UDim2.new(0, 194, 0, 38), UDim2.new(1, -206, 0, 40), actionColor)
+		action.TextSize = 11
 		action.Active = not equipped
 		if not equipped then action.Activated:Connect(function() self.StyleRemote:FireServer(style.Id) end) end
 	end
