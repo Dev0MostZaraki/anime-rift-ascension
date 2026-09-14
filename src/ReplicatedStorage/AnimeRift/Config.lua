@@ -2,7 +2,7 @@ local Config = {}
 
 Config.Game = {
 	Name = "Anime Rift Ascension",
-	Version = "4.1-vertical-slice",
+	Version = "4.2-world-pass",
 
 	-- Basic combat
 	BaseDamage = 12,
@@ -21,6 +21,12 @@ Config.Game = {
 	DefensePerLevel = 0.85,
 	DefenseConstant = 120,
 	MaxDamageReduction = 0.65,
+
+	-- Open-world movement
+	WalkSpeed = 16,
+	SprintSpeed = 27,
+	SprintFov = 76,
+	EggSanctuaryRadius = 26,
 
 	-- Abilities
 	DashCooldown = 2.4,
