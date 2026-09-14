@@ -33,7 +33,7 @@ local function addLight(parent, color, brightness, range)
 end
 
 local function addPauldron(model, folder, base, x, color, scale)
-	local p = visual(model, folder, "Pauldron", Vector3.new(1.9*scale, 1.1*scale, 2.2*scale), base * CFrame.new(x, 2.15*scale, 0) * CFrame.Angles(0, 0, math.rad(x > 0 and -18 or 18)), color, Enum.Material.Metal)
+	local p = visual(model, folder, "Pauldron", Vector3.new(1.9 * scale, 1.1 * scale, 2.2 * scale), base * CFrame.new(x, 2.15 * scale, 0) * CFrame.Angles(0, 0, math.rad(x > 0 and -18 or 18)), color, Enum.Material.Metal)
 	return p
 end
 
@@ -51,11 +51,10 @@ function EnemyVisualService:Decorate(model, data)
 	local metal = color:Lerp(Color3.fromRGB(73, 75, 84), 0.67)
 	local scale = data.Boss and 1.55 or 1
 
-	-- Shared armor language: silhouette first, glow second.
-	visual(model, folder, "WaistArmor", Vector3.new(4.5*scale, 1.0*scale, 3.5*scale), base * CFrame.new(0, -2.3*scale, 0), dark, Enum.Material.Metal)
-	addPauldron(model, folder, base, -2.65*scale, metal, scale)
-	addPauldron(model, folder, base, 2.65*scale, metal, scale)
-	local chest = visual(model, folder, "ChestSigil", Vector3.new(2.2*scale, 2.4*scale, 0.34*scale), base * CFrame.new(0, 0.7*scale, -1.75*scale), color, Enum.Material.Neon, 0.08)
+	visual(model, folder, "WaistArmor", Vector3.new(4.5 * scale, 1.0 * scale, 3.5 * scale), base * CFrame.new(0, -2.3 * scale, 0), dark, Enum.Material.Metal)
+	addPauldron(model, folder, base, -2.65 * scale, metal, scale)
+	addPauldron(model, folder, base, 2.65 * scale, metal, scale)
+	local chest = visual(model, folder, "ChestSigil", Vector3.new(2.2 * scale, 2.4 * scale, 0.34 * scale), base * CFrame.new(0, 0.7 * scale, -1.75 * scale), color, Enum.Material.Neon, 0.08)
 	addLight(chest, color, data.Boss and 1.1 or 0.45, data.Boss and 16 or 8)
 
 	if data.Boss then
@@ -71,20 +70,20 @@ function EnemyVisualService:Decorate(model, data)
 
 	if data.Archetype == "Brawler" then
 		visual(model, folder, "Headband", Vector3.new(3.9, 0.42, 3.9), base * CFrame.new(0, 5.15, 0), color, Enum.Material.SmoothPlastic)
-		visual(model, folder, "Belt", Vector3.new(4.6, 0.46, 3.5), base * CFrame.new(0, -1.65, 0), Color3.fromRGB(54, 42, 34), Enum.Material.Leather)
+		visual(model, folder, "Belt", Vector3.new(4.6, 0.46, 3.5), base * CFrame.new(0, -1.65, 0), Color3.fromRGB(54, 42, 34), Enum.Material.Fabric)
 	elseif data.Archetype == "Charger" then
 		for _, x in ipairs({-3.3, 3.3}) do
 			visual(model, folder, "ArmBlade", Vector3.new(0.5, 4.5, 1.0), base * CFrame.new(x, 0.3, -0.4) * CFrame.Angles(math.rad(-18), 0, math.rad(x > 0 and -16 or 16)), color, Enum.Material.Neon, 0.05)
 		end
 		visual(model, folder, "FlameCrest", Vector3.new(1.0, 3.6, 1.0), base * CFrame.new(0, 6.5, 0.5) * CFrame.Angles(math.rad(16), 0, 0), color, Enum.Material.Neon, 0.08)
 	elseif data.Archetype == "Guardian" then
-		visual(model, folder, "ChestPlate", Vector3.new(4.8, 4.2, 0.8), base * CFrame.new(0, 0.6, -1.8), metal:Lerp(Color3.new(1,1,1), 0.12), Enum.Material.Metal)
+		visual(model, folder, "ChestPlate", Vector3.new(4.8, 4.2, 0.8), base * CFrame.new(0, 0.6, -1.8), metal:Lerp(Color3.new(1, 1, 1), 0.12), Enum.Material.Metal)
 		for _, x in ipairs({-1.0, 1.0}) do
 			visual(model, folder, "FrostHorn", Vector3.new(0.7, 2.8, 0.7), base * CFrame.new(x, 6.0, 0) * CFrame.Angles(0, 0, math.rad(x > 0 and -25 or 25)), Color3.fromRGB(160, 230, 255), Enum.Material.Ice, 0.08)
 		end
 	elseif data.Archetype == "Blinker" then
 		visual(model, folder, "VoidMantle", Vector3.new(6.8, 0.55, 3.3), base * CFrame.new(0, 2.7, 0.4), dark, Enum.Material.Slate)
-		local eye = visual(model, folder, "VoidEye", Vector3.new(1.05, 1.05, 0.35), base * CFrame.new(0, 4.75, -1.75), color:Lerp(Color3.new(1,1,1), 0.25), Enum.Material.Neon)
+		local eye = visual(model, folder, "VoidEye", Vector3.new(1.05, 1.05, 0.35), base * CFrame.new(0, 4.75, -1.75), color:Lerp(Color3.new(1, 1, 1), 0.25), Enum.Material.Neon)
 		eye.Shape = Enum.PartType.Ball
 		addLight(eye, color, 0.8, 11)
 	end
