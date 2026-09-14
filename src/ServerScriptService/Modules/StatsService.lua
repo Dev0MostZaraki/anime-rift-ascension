@@ -53,27 +53,14 @@ function StatsService:Calculate(player)
 	return combatStats
 end
 
-function StatsService:ApplyCharacter(player, fullHeal)
-	local combatStats = self:Calculate(player)
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not combatStats or not humanoid then return end
-
-	local oldMax = math.max(1, humanoid.MaxHealth)
-	local ratio = math.clamp(humanoid.Health / oldMax, 0, 1)
-	humanoid.MaxHealth = combatStats.MaxHealth.Value
-	if fullHeal then
-		humanoid.Health = humanoid.MaxHealth
-	else
-		humanoid.Health = math.clamp(math.max(1, humanoid.MaxHealth * ratio), 0, humanoid.MaxHealth)
-	end
-
-	self:BindDefense(player, humanoid)
+function StatsService:DisconnectDefense(player)
+	local connection = self.HealthConnections[player]
+	if connection then connection:Disconnect() end
+	self.HealthConnections[player] = nil
 end
 
 function StatsService:BindDefense(player, humanoid)
-	local previous = self.HealthConnections[player]
-	if previous then previous:Disconnect() end
+	self:DisconnectDefense(player)
 	local internal = false
 	local lastHealth = humanoid.Health
 
@@ -88,18 +75,35 @@ function StatsService:BindDefense(player, humanoid)
 			local reduction = reductionValue and reductionValue.Value or 0
 			if reduction > 0 then
 				local rawDamage = lastHealth - newHealth
-				local restored = rawDamage * reduction
-				local mitigatedHealth = math.min(humanoid.MaxHealth, newHealth + restored)
+				local mitigatedHealth = math.min(humanoid.MaxHealth, newHealth + rawDamage * reduction)
 				if mitigatedHealth > newHealth then
 					internal = true
 					humanoid.Health = mitigatedHealth
-					internal = false
 					newHealth = mitigatedHealth
+					task.defer(function() internal = false end)
 				end
 			end
 		end
 		lastHealth = newHealth
 	end)
+end
+
+function StatsService:ApplyCharacter(player, fullHeal)
+	local combatStats = self:Calculate(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not combatStats or not humanoid then return end
+
+	self:DisconnectDefense(player)
+	local oldMax = math.max(1, humanoid.MaxHealth)
+	local ratio = math.clamp(humanoid.Health / oldMax, 0, 1)
+	humanoid.MaxHealth = combatStats.MaxHealth.Value
+	if fullHeal then
+		humanoid.Health = humanoid.MaxHealth
+	else
+		humanoid.Health = math.clamp(math.max(1, humanoid.MaxHealth * ratio), 0, humanoid.MaxHealth)
+	end
+	self:BindDefense(player, humanoid)
 end
 
 function StatsService:Recalculate(player, preserveHealth)
@@ -109,19 +113,19 @@ function StatsService:Recalculate(player, preserveHealth)
 	local combatStats = self:Calculate(player)
 	self.Context.Services.DataService:RecalculatePower(player)
 	if humanoid and combatStats then
+		self:DisconnectDefense(player)
 		humanoid.MaxHealth = combatStats.MaxHealth.Value
 		if preserveHealth == false then
 			humanoid.Health = humanoid.MaxHealth
 		else
 			humanoid.Health = math.clamp(humanoid.MaxHealth * oldRatio, 1, humanoid.MaxHealth)
 		end
+		self:BindDefense(player, humanoid)
 	end
 end
 
 function StatsService:Cleanup(player)
-	local connection = self.HealthConnections[player]
-	if connection then connection:Disconnect() end
-	self.HealthConnections[player] = nil
+	self:DisconnectDefense(player)
 end
 
 function StatsService:Start()
