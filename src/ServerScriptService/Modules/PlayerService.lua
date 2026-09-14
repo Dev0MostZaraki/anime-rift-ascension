@@ -5,9 +5,25 @@ local PlayerService = {}
 PlayerService.__index = PlayerService
 
 function PlayerService.new(context)
-	local self = setmetatable({}, PlayerService)
-	self.Context = context
-	return self
+	return setmetatable({Context = context}, PlayerService)
+end
+
+local function connectEquipmentRecalc(data, player, inventory)
+	local function hook(child)
+		child:GetAttributeChangedSignal("Equipped"):Connect(function()
+			data:RecalculatePower(player)
+		end)
+	end
+	for _, child in ipairs(inventory:GetChildren()) do hook(child) end
+	inventory.ChildAdded:Connect(hook)
+end
+
+function PlayerService:PrepareCharacter(player)
+	task.wait(0.25)
+	self.Context.Services.WorldService:TeleportToHub(player)
+	task.wait(0.4)
+	self.Context.Services.CombatService:GiveWeapon(player)
+	self.Context.Services.PetService:RebuildFollowers(player)
 end
 
 function PlayerService:SetupPlayer(player)
@@ -16,35 +32,19 @@ function PlayerService:SetupPlayer(player)
 	data:Load(player)
 	data:RecalculatePower(player)
 
-	local inventory = player:WaitForChild("PetInventory")
-	inventory.ChildAdded:Connect(function(child)
-		child:GetAttributeChangedSignal("Equipped"):Connect(function()
-			data:RecalculatePower(player)
-		end)
-	end)
+	connectEquipmentRecalc(data, player, player:WaitForChild("PetInventory"))
+	connectEquipmentRecalc(data, player, player:WaitForChild("RelicInventory"))
 
 	player.CharacterAdded:Connect(function()
-		task.wait(0.25)
-		self.Context.Services.WorldService:TeleportToHub(player)
-		task.wait(0.45)
-		self.Context.Services.CombatService:GiveBlade(player)
-		self.Context.Services.PetService:RebuildFollowers(player)
-		task.wait(1)
-		self.Context:Notify(player, "Welcome to Anime Rift Ascension. Farm • Hatch • Ascend.", "info")
+		self:PrepareCharacter(player)
+		task.wait(0.9)
+		self.Context:Notify(player, "Anime Rift 3.0 • Styles, Mastery, Relics and evolving bosses are live.", "info")
 		if not data.PersistenceEnabled then
 			self.Context:Notify(player, "Studio session mode: persistent saving is currently unavailable.", "info")
 		end
 	end)
 
-	if player.Character then
-		task.defer(function()
-			task.wait(0.25)
-			self.Context.Services.WorldService:TeleportToHub(player)
-			task.wait(0.45)
-			self.Context.Services.CombatService:GiveBlade(player)
-			self.Context.Services.PetService:RebuildFollowers(player)
-		end)
-	end
+	if player.Character then task.defer(function() self:PrepareCharacter(player) end) end
 
 	task.spawn(function()
 		while player.Parent do
@@ -60,21 +60,17 @@ function PlayerService:SetupPlayer(player)
 end
 
 function PlayerService:Start()
-	Players.PlayerAdded:Connect(function(player)
-		self:SetupPlayer(player)
-	end)
+	Players.PlayerAdded:Connect(function(player) self:SetupPlayer(player) end)
 
 	Players.PlayerRemoving:Connect(function(player)
 		self.Context.Services.DataService:Save(player)
 		self.Context.Services.PetService:ClearFollowers(player)
 		self.Context.Services.CombatService.LastAttack[player] = nil
+		self.Context.Services.CombatService.Combos[player] = nil
+		self.Context.Services.DashService.LastDash[player] = nil
 	end)
 
-	for _, player in ipairs(Players:GetPlayers()) do
-		task.spawn(function()
-			self:SetupPlayer(player)
-		end)
-	end
+	for _, player in ipairs(Players:GetPlayers()) do task.spawn(function() self:SetupPlayer(player) end) end
 
 	RunService.Heartbeat:Connect(function()
 		for _, player in ipairs(Players:GetPlayers()) do
@@ -91,16 +87,12 @@ function PlayerService:Start()
 	task.spawn(function()
 		while self.Context.WorldFolder and self.Context.WorldFolder.Parent do
 			task.wait(self.Context.Config.Game.AutosaveSeconds)
-			for _, player in ipairs(Players:GetPlayers()) do
-				self.Context.Services.DataService:Save(player)
-			end
+			for _, player in ipairs(Players:GetPlayers()) do self.Context.Services.DataService:Save(player) end
 		end
 	end)
 
 	game:BindToClose(function()
-		for _, player in ipairs(Players:GetPlayers()) do
-			self.Context.Services.DataService:Save(player)
-		end
+		for _, player in ipairs(Players:GetPlayers()) do self.Context.Services.DataService:Save(player) end
 		task.wait(2)
 	end)
 end
