@@ -36,10 +36,11 @@ function ArsenalService:AddMastery(player, amount)
 	local styleId = profile.EquippedStyle.Value
 	local mastery = profile.StyleMastery:FindFirstChild(styleId)
 	if not mastery then return end
-	mastery.Value += math.max(0, math.floor(amount or 0))
-	local milestones = {50, 100, 200, 350, 500}
-	for _, mark in ipairs(milestones) do
-		if mastery.Value >= mark and mastery.Value - math.max(0, math.floor(amount or 0)) < mark then
+	local gain = math.max(0, math.floor(amount or 0))
+	local before = mastery.Value
+	mastery.Value += gain
+	for _, mark in ipairs({50, 100, 200, 350, 500}) do
+		if mastery.Value >= mark and before < mark then
 			self.Context:Notify(player, "STYLE MASTERY • " .. self.Context.Config.Styles[styleId].Name .. " reached " .. mark, "level")
 			break
 		end
@@ -53,8 +54,13 @@ function ArsenalService:Equip(player, styleId)
 	local unlocked = profile.StyleUnlocks:FindFirstChild(styleId)
 	if not unlocked or not unlocked.Value then return end
 	profile.EquippedStyle.Value = styleId
+	if self.Context.Services.StatsService then
+		self.Context.Services.StatsService:Recalculate(player, true)
+	end
 	self.Context.Services.CombatService:GiveWeapon(player)
-	self.Context:Notify(player, style.Name .. " equipped.", "success")
+	local combatStats = player:FindFirstChild("CombatStats")
+	local defenseText = combatStats and string.format(" • %d HP • %.0f DEF", combatStats.MaxHealth.Value, combatStats.Defense.Value) or ""
+	self.Context:Notify(player, style.Name .. " equipped" .. defenseText, "success")
 end
 
 function ArsenalService:PurchaseOrEquip(player, styleId)
