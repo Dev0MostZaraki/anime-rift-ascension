@@ -83,6 +83,7 @@ end
 
 local function billboard(parent, text, color)
 	local gui = Instance.new("BillboardGui")
+	gui.Name = "CompanionLabel"
 	gui.Size = UDim2.new(0, 138, 0, 30)
 	gui.StudsOffset = Vector3.new(0, 2.8, 0)
 	gui.AlwaysOnTop = true
@@ -126,32 +127,45 @@ local rarityRank = {Common = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 5, W
 
 function PetService:BuildCompanionModel(parent, pet, slot)
 	local rarity = tostring(pet:GetAttribute("Rarity") or "Common")
-	local rank = rarityRank[rarity] or 1
 	local color = self.Context.Config.RarityColors[rarity] or self.Context.Config.RarityColors.Common
-	local dark = color:Lerp(Color3.fromRGB(24, 25, 34), 0.62)
+
+	-- Imported creature art wins automatically. This lets Blender models replace the
+	-- prototype one family at a time without touching inventory or follow logic.
+	local art = self.Context.Services.CreatureArtService
+	if art then
+		local imported = art:TryBuildPet(parent, pet, slot)
+		if imported then
+			billboard(imported.PrimaryPart, pet.Value, color)
+			return imported
+		end
+	end
+
+	local rank = rarityRank[rarity] or 1
+	local dark = color:Lerp(Color3.fromRGB(24, 25, 34), 0.68)
 	local highlight = color:Lerp(Color3.new(1, 1, 1), 0.28)
 	local model = Instance.new("Model")
 	model.Name = pet.Value
 	model:SetAttribute("Slot", slot)
 	model:SetAttribute("Rarity", rarity)
+	model:SetAttribute("ProceduralCompanion", true)
 	model.Parent = parent
 	local body = visualPart(model, "Body", Vector3.new(2.45, 2.1, 2.8), dark, Enum.Material.SmoothPlastic)
 	body.Shape = Enum.PartType.Ball
-	local head = visualPart(model, "Head", Vector3.new(1.9, 1.8, 1.9), color:Lerp(Color3.fromRGB(40, 42, 52), 0.40), Enum.Material.SmoothPlastic)
+	local head = visualPart(model, "Head", Vector3.new(1.9, 1.8, 1.9), color:Lerp(Color3.fromRGB(40, 42, 52), 0.46), Enum.Material.SmoothPlastic)
 	head.Shape = Enum.PartType.Ball
-	local core = visualPart(model, "Core", Vector3.new(0.72, 0.72, 0.38), highlight, Enum.Material.Neon)
+	local core = visualPart(model, "Core", Vector3.new(0.72, 0.72, 0.38), highlight, Enum.Material.Glass, 0.10)
 	core.Shape = Enum.PartType.Ball
-	visualPart(model, "EarL", Vector3.new(0.48, 1.15, 0.58), color, rank >= 3 and Enum.Material.Neon or Enum.Material.SmoothPlastic)
-	visualPart(model, "EarR", Vector3.new(0.48, 1.15, 0.58), color, rank >= 3 and Enum.Material.Neon or Enum.Material.SmoothPlastic)
-	visualPart(model, "WingL", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, rank >= 2 and Enum.Material.Neon or Enum.Material.Glass, rank >= 2 and 0.10 or 0.28)
-	visualPart(model, "WingR", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, rank >= 2 and Enum.Material.Neon or Enum.Material.Glass, rank >= 2 and 0.10 or 0.28)
+	visualPart(model, "EarL", Vector3.new(0.48, 1.15, 0.58), color, Enum.Material.SmoothPlastic)
+	visualPart(model, "EarR", Vector3.new(0.48, 1.15, 0.58), color, Enum.Material.SmoothPlastic)
+	visualPart(model, "WingL", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, Enum.Material.Glass, rank >= 2 and 0.16 or 0.32)
+	visualPart(model, "WingR", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, Enum.Material.Glass, rank >= 2 and 0.16 or 0.32)
 	visualPart(model, "Tail", Vector3.new(0.52, 0.52, 1.85), color, Enum.Material.SmoothPlastic)
-	if rank >= 4 then local crown = visualPart(model, "Crown", Vector3.new(2.3, 0.34, 2.3), highlight, Enum.Material.Neon, 0.08); crown.Shape = Enum.PartType.Cylinder end
-	if rank >= 5 then local halo = visualPart(model, "Halo", Vector3.new(3.2, 0.22, 3.2), color, Enum.Material.Neon, 0.12); halo.Shape = Enum.PartType.Cylinder end
+	if rank >= 4 then local crown = visualPart(model, "Crown", Vector3.new(2.3, 0.34, 2.3), highlight, Enum.Material.Glass, 0.16); crown.Shape = Enum.PartType.Cylinder end
+	if rank >= 5 then local halo = visualPart(model, "Halo", Vector3.new(3.2, 0.22, 3.2), color, Enum.Material.Glass, 0.20); halo.Shape = Enum.PartType.Cylinder end
 	local l = Instance.new("PointLight")
 	l.Color = color
-	l.Brightness = 0.45 + rank * 0.18
-	l.Range = 7 + rank
+	l.Brightness = 0.12 + rank * 0.055
+	l.Range = 5 + rank * 0.55
 	l.Shadows = false
 	l.Parent = core
 	billboard(head, pet.Value, color)
@@ -193,25 +207,31 @@ function PetService:Start()
 				if root and folder and folder.Parent then
 					for _, model in ipairs(folder:GetChildren()) do
 						local slot = model:GetAttribute("Slot") or 1
-						local body = model:FindFirstChild("Body")
-						if body then
-							local xOffsets = {-4.7, 0, 4.7}
-							local x = xOffsets[slot] or 0
-							local back = 6.1 + math.abs(slot - 2) * 0.7
-							local bob = math.sin(now * 2.7 + slot * 1.8) * 0.36
-							local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.8 + bob, 0)
-							local base = CFrame.lookAt(target, target + root.CFrame.LookVector)
-							body.CFrame = base
-							placePart(model:FindFirstChild("Head"), base * CFrame.new(0, 0.75, -1.15))
-							placePart(model:FindFirstChild("Core"), base * CFrame.new(0, 0.65, -2.05))
-							placePart(model:FindFirstChild("EarL"), base * CFrame.new(-0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(-18)))
-							placePart(model:FindFirstChild("EarR"), base * CFrame.new(0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(18)))
-							local flap = math.sin(now * 5 + slot) * 0.18
-							placePart(model:FindFirstChild("WingL"), base * CFrame.new(-1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(-12), math.rad(-20 - flap * 25)))
-							placePart(model:FindFirstChild("WingR"), base * CFrame.new(1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(12), math.rad(20 + flap * 25)))
-							placePart(model:FindFirstChild("Tail"), base * CFrame.new(0, -0.35, 1.95) * CFrame.Angles(math.rad(20), 0, 0))
-							placePart(model:FindFirstChild("Crown"), base * CFrame.new(0, 2.45, -1.05) * CFrame.Angles(0, 0, math.rad(90)))
-							placePart(model:FindFirstChild("Halo"), base * CFrame.new(0, 2.75, -0.95) * CFrame.Angles(0, 0, math.rad(90)))
+						local xOffsets = {-4.7, 0, 4.7}
+						local x = xOffsets[slot] or 0
+						local back = 6.1 + math.abs(slot - 2) * 0.7
+						local bob = math.sin(now * 2.7 + slot * 1.8) * 0.36
+						local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.8 + bob, 0)
+						local base = CFrame.lookAt(target, target + root.CFrame.LookVector)
+
+						if model:GetAttribute("ImportedCompanion") == true and model.PrimaryPart then
+							local sway = math.sin(now * 1.7 + slot) * math.rad(3.5)
+							model:PivotTo(base * CFrame.Angles(0, 0, sway))
+						else
+							local body = model:FindFirstChild("Body")
+							if body then
+								body.CFrame = base
+								placePart(model:FindFirstChild("Head"), base * CFrame.new(0, 0.75, -1.15))
+								placePart(model:FindFirstChild("Core"), base * CFrame.new(0, 0.65, -2.05))
+								placePart(model:FindFirstChild("EarL"), base * CFrame.new(-0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(-18)))
+								placePart(model:FindFirstChild("EarR"), base * CFrame.new(0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(18)))
+								local flap = math.sin(now * 5 + slot) * 0.18
+								placePart(model:FindFirstChild("WingL"), base * CFrame.new(-1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(-12), math.rad(-20 - flap * 25)))
+								placePart(model:FindFirstChild("WingR"), base * CFrame.new(1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(12), math.rad(20 + flap * 25)))
+								placePart(model:FindFirstChild("Tail"), base * CFrame.new(0, -0.35, 1.95) * CFrame.Angles(math.rad(20), 0, 0))
+								placePart(model:FindFirstChild("Crown"), base * CFrame.new(0, 2.45, -1.05) * CFrame.Angles(0, 0, math.rad(90)))
+								placePart(model:FindFirstChild("Halo"), base * CFrame.new(0, 2.75, -0.95) * CFrame.Angles(0, 0, math.rad(90)))
+							end
 						end
 					end
 				end
