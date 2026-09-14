@@ -27,9 +27,11 @@ local Context = {
 	RewardMultiplier = 1,
 	Remotes = {
 		Attack = makeRemote("Attack"),
+		Ability = makeRemote("Ability"),
 		EquipPet = makeRemote("EquipPet"),
 		Notify = makeRemote("Notify"),
 		WorldEvent = makeRemote("WorldEvent"),
+		ZoneEntered = makeRemote("ZoneEntered"),
 	},
 	Services = {},
 }
@@ -59,7 +61,6 @@ Context.Services.CombatService = CombatService.new(Context)
 Context.Services.EventService = EventService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
--- The world must exist before enemies, followers, events and players are started.
 Context.Services.WorldService:Start()
 Context.Services.PetService:Start()
 Context.Services.CombatService:Start()
