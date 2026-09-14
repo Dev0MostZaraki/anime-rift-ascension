@@ -160,6 +160,13 @@ function CombatUI:StartCooldown(name, seconds)
 	self.CooldownEnds[name] = os.clock() + seconds
 end
 
+function CombatUI:ResetCooldowns()
+	table.clear(self.CooldownEnds)
+	self.ComboToken += 1
+	self.Combo.Visible = false
+	self:RenderCooldowns()
+end
+
 function CombatUI:RenderCooldowns()
 	local now = os.clock()
 	for name, refs in pairs(self.Buttons) do
