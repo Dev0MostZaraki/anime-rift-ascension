@@ -55,6 +55,7 @@ local ArsenalService = require(Modules:WaitForChild("ArsenalService"))
 local LootService = require(Modules:WaitForChild("LootService"))
 local WorldService = require(Modules:WaitForChild("WorldService"))
 local WorldDecorService = require(Modules:WaitForChild("WorldDecorService"))
+local OpenWorldSliceService = require(Modules:WaitForChild("OpenWorldSliceService"))
 local CombatService = require(Modules:WaitForChild("CombatService"))
 local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
@@ -70,6 +71,7 @@ Context.Services.ArsenalService = ArsenalService.new(Context)
 Context.Services.LootService = LootService.new(Context)
 Context.Services.WorldService = WorldService.new(Context)
 Context.Services.WorldDecorService = WorldDecorService.new(Context)
+Context.Services.OpenWorldSliceService = OpenWorldSliceService.new(Context)
 Context.Services.CombatService = CombatService.new(Context)
 Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
@@ -77,23 +79,31 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
--- Keep the existing combat module compatible while 4.0 moves boss balance into Config.
+-- Keep CombatService server authoritative while 4.1 moves enemy placement out of arena circles.
+-- The existing combat module still creates the model; this wrapper relocates the newly-created
+-- model to hand-authored world POIs and applies current boss balance from Config.
 do
 	local combat = Context.Services.CombatService
+	local slice = Context.Services.OpenWorldSliceService
 	local rawAddEnemy = combat.AddEnemy
 	function combat:AddEnemy(zone, index, boss)
 		local before = {}
 		for model in pairs(self.Enemies) do before[model] = true end
 		rawAddEnemy(self, zone, index, boss)
-		if boss then
-			for model, data in pairs(self.Enemies) do
-				if not before[model] and data.Boss then
+		for model, data in pairs(self.Enemies) do
+			if not before[model] and model.Parent and model.PrimaryPart then
+				local spawn = slice:GetEnemySpawn(zone.Id, index, boss)
+				if spawn then
+					data.Spawn = spawn
+					model:PivotTo(CFrame.new(spawn))
+				end
+				if boss then
 					data.HP = Config.Game.BossHP or data.HP
 					data.MaxHP = Config.Game.BossHP or data.MaxHP
 					data.Damage = Config.Game.BossDamage or data.Damage
-					self:UpdateLabel(model)
-					break
 				end
+				self:UpdateLabel(model)
+				break
 			end
 		end
 	end
@@ -101,6 +111,7 @@ end
 
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
+Context.Services.OpenWorldSliceService:Start()
 Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
 Context.Services.ArsenalService:Start()
