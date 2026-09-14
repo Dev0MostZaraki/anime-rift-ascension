@@ -7,6 +7,42 @@
       "$ignoreUnknownInstances": true,
       "$path": "src/ReplicatedStorage"
     },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "$ignoreUnknownInstances": true,
+      "AnimeRiftVendorAssets": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "Staging": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        },
+        "Roblox_SyntyNature_6933438443": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        },
+        "Roblox_SyntyDungeon_6934021345": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        }
+      },
+      "AnimeRiftAssets": {
+        "$className": "Folder",
+        "$ignoreUnknownInstances": true,
+        "Enemies": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        },
+        "Bosses": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        },
+        "Pets": {
+          "$className": "Folder",
+          "$ignoreUnknownInstances": true
+        }
+      }
+    },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "$ignoreUnknownInstances": false,
