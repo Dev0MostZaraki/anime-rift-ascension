@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimeRift = ReplicatedStorage:WaitForChild("AnimeRift")
@@ -26,6 +27,7 @@ local Context = {
 	Remotes = {
 		Attack = makeRemote("Attack"),
 		Ability = makeRemote("Ability"),
+		Movement = makeRemote("Movement"),
 		CombatFeedback = makeRemote("CombatFeedback"),
 		EquipPet = makeRemote("EquipPet"),
 		EquipRelic = makeRemote("EquipRelic"),
@@ -59,6 +61,7 @@ local OpenWorldSliceService = require(Modules:WaitForChild("OpenWorldSliceServic
 local CombatService = require(Modules:WaitForChild("CombatService"))
 local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
+local MovementService = require(Modules:WaitForChild("MovementService"))
 local EventService = require(Modules:WaitForChild("EventService"))
 local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
@@ -75,13 +78,12 @@ Context.Services.OpenWorldSliceService = OpenWorldSliceService.new(Context)
 Context.Services.CombatService = CombatService.new(Context)
 Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
+Context.Services.MovementService = MovementService.new(Context)
 Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
--- Keep CombatService server authoritative while 4.1 moves enemy placement out of arena circles.
--- The existing combat module still creates the model; this wrapper relocates the newly-created
--- model to hand-authored world POIs and applies current boss balance from Config.
+-- Keep CombatService server authoritative while the open-world layer owns encounter placement.
 do
 	local combat = Context.Services.CombatService
 	local slice = Context.Services.OpenWorldSliceService
@@ -107,6 +109,24 @@ do
 			end
 		end
 	end
+
+	-- Hatcheries are intentional peaceful pockets. Enemies lose aggro when a player
+	-- enters one instead of camping the egg prompt and interrupting hatching.
+	function combat:ClosestPlayer(position, range)
+		local bestPlayer, bestRoot, bestDistance = nil, nil, range
+		for _, player in ipairs(Players:GetPlayers()) do
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			if humanoid and humanoid.Health > 0 and root and not slice:IsSafeZone(root.Position) then
+				local distance = (root.Position - position).Magnitude
+				if distance <= bestDistance then
+					bestPlayer, bestRoot, bestDistance = player, root, distance
+				end
+			end
+		end
+		return bestPlayer, bestRoot, bestDistance
+	end
 end
 
 Context.Services.WorldService:Start()
@@ -119,6 +139,7 @@ Context.Services.LootService:Start()
 Context.Services.CombatService:Start()
 Context.Services.EnemyVisualService:Start()
 Context.Services.DashService:Start()
+Context.Services.MovementService:Start()
 Context.Services.EventService:Start()
 Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
