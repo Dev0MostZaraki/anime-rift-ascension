@@ -248,7 +248,7 @@ function WorldService:BuildZone(zone)
 
 	local egg = self.Context.Config.Eggs[zone.Id]
 	local eggPos = center + right * 38 + towardHub * 25
-	local pedestal = makePart(map, "EggPedestal_" .. zone.Id, Vector3.new(9, 2.5, 9), CFrame.new(eggPos + Vector3.new(0, 3.25, 0)), Color3.fromRGB(96, 91, 81), Enum.Material.Stone)
+	local pedestal = makePart(map, "EggPedestal_" .. zone.Id, Vector3.new(9, 2.5, 9), CFrame.new(eggPos + Vector3.new(0, 3.25, 0)), Color3.fromRGB(96, 91, 81), Enum.Material.Slate)
 	local orb = makePart(map, "EggOrb_" .. zone.Id, Vector3.new(5.4, 6.8, 5.4), CFrame.new(eggPos + Vector3.new(0, 7.4, 0)), zone.Color:Lerp(Color3.new(1,1,1), 0.18), Enum.Material.Glass, 0.12, false)
 	orb.Shape = Enum.PartType.Ball
 	pointLight(orb, zone.Color, 0.58, 10)
