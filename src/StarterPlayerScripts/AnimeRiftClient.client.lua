@@ -12,6 +12,7 @@ local PetUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("PetUI"))
 local CombatUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("CombatUI"))
 local ArsenalUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("ArsenalUI"))
 local RelicUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("RelicUI"))
+local DevUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("DevUI"))
 
 local remotes = AnimeRift:WaitForChild("Remotes", 15)
 if not remotes then warn("Anime Rift remotes were not created. Check ServerScriptService output.") return end
@@ -37,6 +38,14 @@ local hud = Hud.new(player, stats, profile, Config)
 PetUI.new(hud.Gui, petInventory, Config, remotes:WaitForChild("EquipPet"))
 ArsenalUI.new(hud.Gui, player, profile, stats, Config, remotes:WaitForChild("StyleAction"))
 RelicUI.new(hud.Gui, relicInventory, Config, remotes:WaitForChild("EquipRelic"))
+
+local devUI
+local function ensureDevUI()
+	if devUI or player:GetAttribute("AnimeRiftDev") ~= true then return end
+	devUI = DevUI.new(hud.Gui, player, remotes:WaitForChild("DevCommand"))
+end
+ensureDevUI()
+player:GetAttributeChangedSignal("AnimeRiftDev"):Connect(ensureDevUI)
 
 local combatUI
 combatUI = CombatUI.new(hud.Gui, Config, function(name)
@@ -87,7 +96,11 @@ remotes.WorldEvent.OnClientEvent:Connect(function(eventName, duration)
 end)
 remotes.ZoneEntered.OnClientEvent:Connect(showZone)
 remotes.CombatFeedback.OnClientEvent:Connect(function(kind, value)
-	if kind == "Combo" then combatUI:ShowCombo(tonumber(value) or 1) end
+	if kind == "Combo" then
+		combatUI:ShowCombo(tonumber(value) or 1)
+	elseif kind == "ResetCooldowns" then
+		combatUI:ResetCooldowns()
+	end
 end)
 
 local wired = setmetatable({}, {__mode = "k"})
