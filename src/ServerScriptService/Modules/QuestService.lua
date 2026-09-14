@@ -28,9 +28,9 @@ function QuestService:Check(player)
 			stats.Gems.Value += quest.Gems
 			local reward = "+" .. quest.Coins .. " Coins"
 			if quest.Gems > 0 then
-				reward ..= " +" .. quest.Gems .. " Gems"
+				reward = reward .. " +" .. quest.Gems .. " Gems"
 			end
-			self.Context:Notify(player, "MISSION COMPLETE: " .. quest.Title .. " • " .. reward, "success")
+			self.Context:Notify(player, "MISSION COMPLETE: " .. quest.Title .. " - " .. reward, "success")
 		end
 	end
 end
