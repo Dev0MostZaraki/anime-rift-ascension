@@ -38,14 +38,8 @@ end
 
 function WorldMotion:Start()
 	self:Collect()
-	local lastRefresh = os.clock()
 	self.Connection = RunService.RenderStepped:Connect(function()
 		local now = os.clock()
-		if now - lastRefresh > 5 then
-			lastRefresh = now
-			self:Collect()
-		end
-
 		for _, item in ipairs(self.Items) do
 			local p = item.Part
 			if p and p.Parent then
