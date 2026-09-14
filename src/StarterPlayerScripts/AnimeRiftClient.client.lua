@@ -13,6 +13,7 @@ local CombatUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("CombatUI
 local ArsenalUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("ArsenalUI"))
 local RelicUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("RelicUI"))
 local DevUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("DevUI"))
+local VisualFX = require(AnimeRift:WaitForChild("Client"):WaitForChild("VisualFX"))
 
 local remotes = AnimeRift:WaitForChild("Remotes", 15)
 if not remotes then warn("Anime Rift remotes were not created. Check ServerScriptService output.") return end
@@ -35,6 +36,7 @@ task.spawn(function()
 end)
 
 local hud = Hud.new(player, stats, profile, Config)
+local visualFX = VisualFX.new(hud.Gui)
 PetUI.new(hud.Gui, petInventory, Config, remotes:WaitForChild("EquipPet"))
 ArsenalUI.new(hud.Gui, player, profile, stats, Config, remotes:WaitForChild("StyleAction"))
 RelicUI.new(hud.Gui, relicInventory, Config, remotes:WaitForChild("EquipRelic"))
@@ -49,6 +51,7 @@ player:GetAttributeChangedSignal("AnimeRiftDev"):Connect(ensureDevUI)
 
 local combatUI
 combatUI = CombatUI.new(hud.Gui, Config, function(name)
+	visualFX:Ability(name)
 	remotes.Ability:FireServer(name)
 end)
 
@@ -59,33 +62,70 @@ end
 refreshStyle()
 profile.EquippedStyle.Changed:Connect(refreshStyle)
 
-local zoneBanner = Instance.new("TextLabel")
+local zoneBanner = Instance.new("Frame")
+zoneBanner.Name = "ZoneBanner"
 zoneBanner.AnchorPoint = Vector2.new(0.5, 0.5)
-zoneBanner.Position = UDim2.new(0.5, 0, 0.33, 0)
+zoneBanner.Position = UDim2.new(0.5, 0, 0.34, 0)
 zoneBanner.Size = UDim2.new(0, 520, 0, 72)
+zoneBanner.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
 zoneBanner.BackgroundTransparency = 1
-zoneBanner.TextTransparency = 1
-zoneBanner.TextStrokeTransparency = 1
-zoneBanner.TextScaled = true
-zoneBanner.Font = Enum.Font.GothamBlack
+zoneBanner.BorderSizePixel = 0
 zoneBanner.Visible = false
 zoneBanner.Parent = hud.Gui
+local bannerCorner = Instance.new("UICorner")
+bannerCorner.CornerRadius = UDim.new(0, 12)
+bannerCorner.Parent = zoneBanner
+local bannerStroke = Instance.new("UIStroke")
+bannerStroke.Transparency = 1
+bannerStroke.Thickness = 1
+bannerStroke.Parent = zoneBanner
+
+local zoneKicker = Instance.new("TextLabel")
+zoneKicker.Size = UDim2.new(1, 0, 0, 18)
+zoneKicker.Position = UDim2.new(0, 0, 0, 8)
+zoneKicker.BackgroundTransparency = 1
+zoneKicker.Text = "RIFT ATTUNEMENT"
+zoneKicker.TextColor3 = Color3.fromRGB(174, 178, 195)
+zoneKicker.TextTransparency = 1
+zoneKicker.TextSize = 10
+zoneKicker.Font = Enum.Font.GothamBold
+zoneKicker.Parent = zoneBanner
+
+local zoneTitle = Instance.new("TextLabel")
+zoneTitle.Size = UDim2.new(1, 0, 0, 38)
+zoneTitle.Position = UDim2.new(0, 0, 0, 25)
+zoneTitle.BackgroundTransparency = 1
+zoneTitle.TextTransparency = 1
+zoneTitle.TextScaled = true
+zoneTitle.Font = Enum.Font.GothamBlack
+zoneTitle.Parent = zoneBanner
 
 local zoneToken = 0
 local function showZone(name, color)
 	zoneToken += 1
 	local token = zoneToken
-	zoneBanner.Text = tostring(name)
-	zoneBanner.TextColor3 = color or Color3.fromRGB(230, 220, 255)
-	zoneBanner.TextTransparency = 1
-	zoneBanner.TextStrokeTransparency = 1
+	local tint = color or Color3.fromRGB(230, 220, 255)
+	visualFX:Zone(tint)
+	zoneTitle.Text = string.upper(tostring(name))
+	zoneTitle.TextColor3 = tint
+	bannerStroke.Color = tint
+	zoneTitle.TextTransparency = 1
+	zoneKicker.TextTransparency = 1
+	zoneBanner.BackgroundTransparency = 1
+	bannerStroke.Transparency = 1
 	zoneBanner.Visible = true
-	TweenService:Create(zoneBanner, TweenInfo.new(0.22), {TextTransparency = 0, TextStrokeTransparency = 0.35}):Play()
-	task.delay(1.6, function()
+	zoneBanner.Position = UDim2.new(0.5, 0, 0.36, 0)
+	TweenService:Create(zoneBanner, TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundTransparency = 0.22, Position = UDim2.new(0.5, 0, 0.34, 0)}):Play()
+	TweenService:Create(zoneTitle, TweenInfo.new(0.22), {TextTransparency = 0}):Play()
+	TweenService:Create(zoneKicker, TweenInfo.new(0.22), {TextTransparency = 0.18}):Play()
+	TweenService:Create(bannerStroke, TweenInfo.new(0.22), {Transparency = 0.42}):Play()
+	task.delay(1.55, function()
 		if token ~= zoneToken then return end
-		local tween = TweenService:Create(zoneBanner, TweenInfo.new(0.35), {TextTransparency = 1, TextStrokeTransparency = 1})
-		tween:Play()
-		tween.Completed:Wait()
+		local tween = TweenService:Create(zoneBanner, TweenInfo.new(0.30), {BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0.32, 0)})
+		TweenService:Create(zoneTitle, TweenInfo.new(0.30), {TextTransparency = 1}):Play()
+		TweenService:Create(zoneKicker, TweenInfo.new(0.30), {TextTransparency = 1}):Play()
+		TweenService:Create(bannerStroke, TweenInfo.new(0.30), {Transparency = 1}):Play()
+		tween:Play(); tween.Completed:Wait()
 		if token == zoneToken then zoneBanner.Visible = false end
 	end)
 end
@@ -97,7 +137,9 @@ end)
 remotes.ZoneEntered.OnClientEvent:Connect(showZone)
 remotes.CombatFeedback.OnClientEvent:Connect(function(kind, value)
 	if kind == "Combo" then
-		combatUI:ShowCombo(tonumber(value) or 1)
+		local stage = tonumber(value) or 1
+		combatUI:ShowCombo(stage)
+		visualFX:Combo(stage)
 	elseif kind == "ResetCooldowns" then
 		combatUI:ResetCooldowns()
 	end
