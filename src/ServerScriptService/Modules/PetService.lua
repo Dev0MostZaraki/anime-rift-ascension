@@ -25,9 +25,7 @@ function PetService:Roll(egg)
 	local total = 0
 	for _, entry in ipairs(egg.Pets) do
 		total += entry.Chance
-		if roll <= total then
-			return entry, entry.Names[math.random(1, #entry.Names)]
-		end
+		if roll <= total then return entry, entry.Names[math.random(1, #entry.Names)] end
 	end
 	return egg.Pets[1], egg.Pets[1].Names[1]
 end
@@ -37,17 +35,9 @@ function PetService:Hatch(player, eggId)
 	local stats = player:FindFirstChild("leaderstats")
 	local profile = player:FindFirstChild("RiftProfile")
 	if not egg or not stats or not profile then return end
-
 	local unlocked = profile.ZoneUnlocks:FindFirstChild("Zone" .. egg.Zone)
-	if not unlocked or not unlocked.Value then
-		self.Context:Notify(player, "Unlock this zone first.", "error")
-		return
-	end
-	if stats.Coins.Value < egg.Cost then
-		self.Context:Notify(player, "You need " .. egg.Cost .. " Coins.", "error")
-		return
-	end
-
+	if not unlocked or not unlocked.Value then self.Context:Notify(player, "Unlock this zone first.", "error") return end
+	if stats.Coins.Value < egg.Cost then self.Context:Notify(player, "You need " .. egg.Cost .. " Coins.", "error") return end
 	stats.Coins.Value -= egg.Cost
 	local entry, petName = self:Roll(egg)
 	self.Context.Services.DataService:AddPet(player, petName, entry.Rarity, entry.Bonus, true)
@@ -60,22 +50,16 @@ end
 function PetService:Equip(player, petId)
 	local inventory = player:FindFirstChild("PetInventory")
 	if not inventory or type(petId) ~= "string" then return end
-
 	if petId == "__BEST__" then
 		local pets = inventory:GetChildren()
-		table.sort(pets, function(a, b)
-			return (tonumber(a:GetAttribute("Bonus")) or 0) > (tonumber(b:GetAttribute("Bonus")) or 0)
-		end)
+		table.sort(pets, function(a, b) return (tonumber(a:GetAttribute("Bonus")) or 0) > (tonumber(b:GetAttribute("Bonus")) or 0) end)
 		for _, pet in ipairs(pets) do pet:SetAttribute("Equipped", false) end
-		for i = 1, math.min(self.Context.Config.Game.MaxEquippedPets, #pets) do
-			pets[i]:SetAttribute("Equipped", true)
-		end
+		for i = 1, math.min(self.Context.Config.Game.MaxEquippedPets, #pets) do pets[i]:SetAttribute("Equipped", true) end
 		self.Context.Services.DataService:RecalculatePower(player)
 		self:RebuildFollowers(player)
 		self.Context:Notify(player, "Best companions equipped.", "success")
 		return
 	end
-
 	local pet = inventory:FindFirstChild(petId)
 	if not pet then return end
 	if pet:GetAttribute("Equipped") == true then
@@ -99,36 +83,80 @@ end
 
 local function billboard(parent, text, color)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.new(0, 124, 0, 28)
-	gui.StudsOffset = Vector3.new(0, 2.45, 0)
+	gui.Size = UDim2.new(0, 138, 0, 30)
+	gui.StudsOffset = Vector3.new(0, 2.8, 0)
 	gui.AlwaysOnTop = true
-	gui.MaxDistance = 32
+	gui.MaxDistance = 24
 	gui.LightInfluence = 0
 	gui.Parent = parent
-
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
+	label.BackgroundColor3 = Color3.fromRGB(12, 14, 20)
+	label.BackgroundTransparency = 0.34
+	label.BorderSizePixel = 0
 	label.Text = text
 	label.TextColor3 = color
-	label.TextStrokeTransparency = 0.42
+	label.TextStrokeTransparency = 0.68
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBold
 	label.Parent = gui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = label
 end
 
-local function visualPart(model, name, size, color, material)
-	local part = Instance.new("Part")
-	part.Name = name
-	part.Size = size
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanTouch = false
-	part.CanQuery = false
-	part.Material = material or Enum.Material.Neon
-	part.Color = color
-	part.Parent = model
-	return part
+local function visualPart(model, name, size, color, material, transparency)
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.Color = color
+	p.Transparency = transparency or 0
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = model
+	return p
+end
+
+local rarityRank = {Common = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 5, WORLD = 6}
+
+function PetService:BuildCompanionModel(parent, pet, slot)
+	local rarity = tostring(pet:GetAttribute("Rarity") or "Common")
+	local rank = rarityRank[rarity] or 1
+	local color = self.Context.Config.RarityColors[rarity] or self.Context.Config.RarityColors.Common
+	local dark = color:Lerp(Color3.fromRGB(24, 25, 34), 0.62)
+	local highlight = color:Lerp(Color3.new(1, 1, 1), 0.28)
+	local model = Instance.new("Model")
+	model.Name = pet.Value
+	model:SetAttribute("Slot", slot)
+	model:SetAttribute("Rarity", rarity)
+	model.Parent = parent
+	local body = visualPart(model, "Body", Vector3.new(2.45, 2.1, 2.8), dark, Enum.Material.SmoothPlastic)
+	body.Shape = Enum.PartType.Ball
+	local head = visualPart(model, "Head", Vector3.new(1.9, 1.8, 1.9), color:Lerp(Color3.fromRGB(40, 42, 52), 0.40), Enum.Material.SmoothPlastic)
+	head.Shape = Enum.PartType.Ball
+	local core = visualPart(model, "Core", Vector3.new(0.72, 0.72, 0.38), highlight, Enum.Material.Neon)
+	core.Shape = Enum.PartType.Ball
+	visualPart(model, "EarL", Vector3.new(0.48, 1.15, 0.58), color, rank >= 3 and Enum.Material.Neon or Enum.Material.SmoothPlastic)
+	visualPart(model, "EarR", Vector3.new(0.48, 1.15, 0.58), color, rank >= 3 and Enum.Material.Neon or Enum.Material.SmoothPlastic)
+	visualPart(model, "WingL", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, rank >= 2 and Enum.Material.Neon or Enum.Material.Glass, rank >= 2 and 0.10 or 0.28)
+	visualPart(model, "WingR", Vector3.new(1.65 + rank * 0.12, 0.38, 1.2), highlight, rank >= 2 and Enum.Material.Neon or Enum.Material.Glass, rank >= 2 and 0.10 or 0.28)
+	visualPart(model, "Tail", Vector3.new(0.52, 0.52, 1.85), color, Enum.Material.SmoothPlastic)
+	if rank >= 4 then local crown = visualPart(model, "Crown", Vector3.new(2.3, 0.34, 2.3), highlight, Enum.Material.Neon, 0.08); crown.Shape = Enum.PartType.Cylinder end
+	if rank >= 5 then local halo = visualPart(model, "Halo", Vector3.new(3.2, 0.22, 3.2), color, Enum.Material.Neon, 0.12); halo.Shape = Enum.PartType.Cylinder end
+	local l = Instance.new("PointLight")
+	l.Color = color
+	l.Brightness = 0.45 + rank * 0.18
+	l.Range = 7 + rank
+	l.Shadows = false
+	l.Parent = core
+	billboard(head, pet.Value, color)
+	model.PrimaryPart = body
+	return model
 end
 
 function PetService:RebuildFollowers(player)
@@ -138,44 +166,22 @@ function PetService:RebuildFollowers(player)
 	if not inventory or not world then return end
 	local rootFolder = world:FindFirstChild("Followers")
 	if not rootFolder then return end
-
 	local folder = Instance.new("Folder")
 	folder.Name = tostring(player.UserId)
 	folder.Parent = rootFolder
 	self.Followers[player] = folder
+	local pets = {}
+	for _, pet in ipairs(inventory:GetChildren()) do if pet:GetAttribute("Equipped") == true then table.insert(pets, pet) end end
+	table.sort(pets, function(a, b) return (tonumber(a:GetAttribute("Bonus")) or 0) > (tonumber(b:GetAttribute("Bonus")) or 0) end)
+	for slot = 1, math.min(self.Context.Config.Game.MaxEquippedPets, #pets) do self:BuildCompanionModel(folder, pets[slot], slot) end
+end
 
-	local slot = 0
-	for _, pet in ipairs(inventory:GetChildren()) do
-		if pet:GetAttribute("Equipped") == true and slot < self.Context.Config.Game.MaxEquippedPets then
-			slot += 1
-			local rarity = tostring(pet:GetAttribute("Rarity") or "Common")
-			local color = self.Context.Config.RarityColors[rarity] or self.Context.Config.RarityColors.Common
-
-			local model = Instance.new("Model")
-			model.Name = pet.Value
-			model:SetAttribute("Slot", slot)
-			model.Parent = folder
-
-			local body = visualPart(model, "Body", Vector3.new(2.35, 2.35, 2.35), color)
-			body.Shape = Enum.PartType.Ball
-			local core = visualPart(model, "Core", Vector3.new(0.82, 0.82, 0.82), Color3.fromRGB(250, 250, 255))
-			core.Shape = Enum.PartType.Ball
-			local left = visualPart(model, "LeftOrb", Vector3.new(0.55, 0.55, 0.55), color:Lerp(Color3.new(1, 1, 1), 0.35))
-			left.Shape = Enum.PartType.Ball
-			local right = visualPart(model, "RightOrb", Vector3.new(0.55, 0.55, 0.55), color:Lerp(Color3.new(1, 1, 1), 0.35))
-			right.Shape = Enum.PartType.Ball
-
-			billboard(body, pet.Value, color)
-			model.PrimaryPart = body
-		end
-	end
+local function placePart(p, cf)
+	if p then p.CFrame = cf end
 end
 
 function PetService:Start()
-	self.Context.Remotes.EquipPet.OnServerEvent:Connect(function(player, petId)
-		self:Equip(player, petId)
-	end)
-
+	self.Context.Remotes.EquipPet.OnServerEvent:Connect(function(player, petId) self:Equip(player, petId) end)
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()
 		for player, folder in pairs(self.Followers) do
@@ -188,19 +194,24 @@ function PetService:Start()
 					for _, model in ipairs(folder:GetChildren()) do
 						local slot = model:GetAttribute("Slot") or 1
 						local body = model:FindFirstChild("Body")
-						local core = model:FindFirstChild("Core")
-						local left = model:FindFirstChild("LeftOrb")
-						local right = model:FindFirstChild("RightOrb")
-						if body and core then
-							local xOffsets = {-4.4, 0, 4.4}
+						if body then
+							local xOffsets = {-4.7, 0, 4.7}
 							local x = xOffsets[slot] or 0
-							local back = 5.4 + math.abs(slot - 2) * 0.9
-							local bob = math.sin(now * 3 + slot * 1.7) * 0.3
-							local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.5 + bob, 0)
-							body.CFrame = CFrame.new(target)
-							core.CFrame = CFrame.new(target)
-							if left then left.CFrame = CFrame.new(target + Vector3.new(-1.45, 0.15, 0)) end
-							if right then right.CFrame = CFrame.new(target + Vector3.new(1.45, 0.15, 0)) end
+							local back = 6.1 + math.abs(slot - 2) * 0.7
+							local bob = math.sin(now * 2.7 + slot * 1.8) * 0.36
+							local target = root.Position + root.CFrame.RightVector * x - root.CFrame.LookVector * back + Vector3.new(0, 2.8 + bob, 0)
+							local base = CFrame.lookAt(target, target + root.CFrame.LookVector)
+							body.CFrame = base
+							placePart(model:FindFirstChild("Head"), base * CFrame.new(0, 0.75, -1.15))
+							placePart(model:FindFirstChild("Core"), base * CFrame.new(0, 0.65, -2.05))
+							placePart(model:FindFirstChild("EarL"), base * CFrame.new(-0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(-18)))
+							placePart(model:FindFirstChild("EarR"), base * CFrame.new(0.65, 1.75, -1.1) * CFrame.Angles(0, 0, math.rad(18)))
+							local flap = math.sin(now * 5 + slot) * 0.18
+							placePart(model:FindFirstChild("WingL"), base * CFrame.new(-1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(-12), math.rad(-20 - flap * 25)))
+							placePart(model:FindFirstChild("WingR"), base * CFrame.new(1.75, 0.25, 0.05) * CFrame.Angles(0, math.rad(12), math.rad(20 + flap * 25)))
+							placePart(model:FindFirstChild("Tail"), base * CFrame.new(0, -0.35, 1.95) * CFrame.Angles(math.rad(20), 0, 0))
+							placePart(model:FindFirstChild("Crown"), base * CFrame.new(0, 2.45, -1.05) * CFrame.Angles(0, 0, math.rad(90)))
+							placePart(model:FindFirstChild("Halo"), base * CFrame.new(0, 2.75, -0.95) * CFrame.Angles(0, 0, math.rad(90)))
 						end
 					end
 				end
