@@ -23,7 +23,6 @@ Typical workflow:
 - `src/ServerScriptService/Modules/` - server game systems
 - `src/StarterPlayerScripts/AnimeRiftClient.client.lua` - client entrypoint
 - `default.project.json` - Rojo project mapping
-- `aftman.toml` - pinned Rojo toolchain
 
 ## Current systems
 
@@ -46,3 +45,5 @@ Typical workflow:
 
 `default.project.json` intentionally manages all scripts inside `ServerScriptService` and `StarterPlayerScripts`.
 On the first sync after the v2 migration, Rojo may propose deleting the manually-created old prototype scripts such as `AnimeFarmPrototype`, `AnimeRiftServer`, `AnimeRiftClient` or the temporary Bootstrap scripts. That cleanup is expected.
+
+Rojo itself can be managed locally by the VS Code Rojo extension. A local `aftman.toml` created by the extension does not need to be committed for this project to sync.
