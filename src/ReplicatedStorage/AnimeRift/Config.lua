@@ -2,7 +2,7 @@ local Config = {}
 
 Config.Game = {
 	Name = "Anime Rift Ascension",
-	Version = "4.0-openworld-alpha",
+	Version = "4.1-vertical-slice",
 
 	-- Basic combat
 	BaseDamage = 12,
@@ -162,7 +162,6 @@ Config.RelicNames = {
 	[4] = {"Void Eye", "Abyss Fragment", "Rift Crown"},
 }
 
--- 4.0 moves the game from four isolated arenas to one connected landmass.
 Config.Zones = {
 	[1] = {
 		Id = 1,
