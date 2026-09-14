@@ -29,13 +29,17 @@ local function makeBillboard(parent, text)
 end
 
 function EventService:GetWorldEggPositions()
+	local positions = {}
+	local expansion = self.Context.Services.OpenWorldExpansionService
+	if expansion and expansion.GetSecretEggPositions then
+		for _, position in ipairs(expansion:GetSecretEggPositions()) do table.insert(positions, position) end
+	end
 	local slice = self.Context.Services.OpenWorldSliceService
 	if slice and slice.GetSecretEggPositions then
-		local positions = slice:GetSecretEggPositions()
-		if positions and #positions > 0 then return positions end
+		for _, position in ipairs(slice:GetSecretEggPositions()) do table.insert(positions, position) end
 	end
+	if #positions > 0 then return positions end
 
-	local positions = {}
 	for _, zone in ipairs(self.Context.Config.Zones) do
 		for _, offset in ipairs({
 			Vector3.new(42, 4, 42), Vector3.new(-42, 4, 40),
