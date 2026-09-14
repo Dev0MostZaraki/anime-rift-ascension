@@ -1,5 +1,5 @@
 return {
     Name = "Anime Rift Ascension",
-    Version = "3.5-visual",
+    Version = "4.0-openworld-alpha",
     Channel = "development",
 }
