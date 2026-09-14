@@ -73,6 +73,27 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
+-- 3.5 raises the visual combat arenas by 3.5 studs. Keep the combat service's spawn
+-- formulas stable, then lift every newly-created enemy and its leash anchor here.
+-- Because AddEnemy is wrapped once, the same grounding is applied to later respawns.
+do
+	local combat = Context.Services.CombatService
+	local rawAddEnemy = combat.AddEnemy
+	local lift = Vector3.new(0, 3.5, 0)
+	function combat:AddEnemy(zone, index, boss)
+		local before = {}
+		for model in pairs(self.Enemies) do before[model] = true end
+		rawAddEnemy(self, zone, index, boss)
+		for model, data in pairs(self.Enemies) do
+			if not before[model] and model.Parent and model.PrimaryPart then
+				data.Spawn += lift
+				model:PivotTo(model:GetPivot() + lift)
+				break
+			end
+		end
+	end
+end
+
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
 Context.Services.PetService:Start()
