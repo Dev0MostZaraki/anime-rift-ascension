@@ -1,12 +1,14 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local CreatureArtService = {}
 CreatureArtService.__index = CreatureArtService
 
 function CreatureArtService.new(context)
+	local manifest = require(ReplicatedStorage:WaitForChild("AnimeRift"):WaitForChild("CreatureArt"))
 	return setmetatable({
 		Context = context,
-		Manifest = require(context.Config.Parent and context.Config.Parent:FindFirstChild("CreatureArt") or game:GetService("ReplicatedStorage"):WaitForChild("AnimeRift"):WaitForChild("CreatureArt")),
+		Manifest = manifest,
 		AssetRoot = nil,
 		Tracks = setmetatable({}, {__mode = "k"}),
 	}, CreatureArtService)
