@@ -133,6 +133,23 @@ end
 
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
+
+-- 4.3 replaces the old prototype landmarks for the three later regions while
+-- keeping useful ambient rocks, pines and dead trees from the earlier decor pass.
+do
+	local decor = Context.WorldFolder and Context.WorldFolder:FindFirstChild("Decor")
+	if decor then
+		local obsolete = {
+			ForgeFoundation = true, ForgeTower = true, ForgeMouth = true, LavaFissure = true,
+			CitadelTower = true, CitadelWallL = true, CitadelWallR = true, FrozenBanner = true,
+			BossStandingStone = true, BossRune = true,
+		}
+		for _, object in ipairs(decor:GetDescendants()) do
+			if obsolete[object.Name] then object:Destroy() end
+		end
+	end
+end
+
 Context.Services.OpenWorldSliceService:Start()
 Context.Services.OpenWorldExpansionService:Start()
 Context.Services.StatsService:Start()
