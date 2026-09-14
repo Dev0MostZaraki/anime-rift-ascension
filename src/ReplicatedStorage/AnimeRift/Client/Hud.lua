@@ -38,6 +38,7 @@ function Hud.new(player, stats, profile, config)
 	self.Profile = profile
 	self.Config = config
 	self.NoticeToken = 0
+	self.HealthConnections = {}
 
 	local playerGui = player:WaitForChild("PlayerGui")
 	local old = playerGui:FindFirstChild("AnimeRiftHUD")
@@ -46,6 +47,7 @@ function Hud.new(player, stats, profile, config)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "AnimeRiftHUD"
 	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = false
 	gui.Parent = playerGui
 	self.Gui = gui
 
@@ -78,9 +80,25 @@ function Hud.new(player, stats, profile, config)
 	self.XPFill.BorderSizePixel = 0
 	self.XPFill.Parent = xpBack
 	corner(self.XPFill, 8)
-
 	self.XPText = label(xpBack, "", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), 12, true)
 	self.XPText.TextXAlignment = Enum.TextXAlignment.Center
+
+	local healthBack = Instance.new("Frame")
+	healthBack.Size = UDim2.new(0, 330, 0, 14)
+	healthBack.Position = UDim2.new(0.5, -165, 0, 111)
+	healthBack.BackgroundColor3 = Color3.fromRGB(30, 33, 44)
+	healthBack.BorderSizePixel = 0
+	healthBack.Parent = gui
+	corner(healthBack, 7)
+
+	self.HealthFill = Instance.new("Frame")
+	self.HealthFill.Size = UDim2.fromScale(1, 1)
+	self.HealthFill.BackgroundColor3 = Color3.fromRGB(215, 74, 96)
+	self.HealthFill.BorderSizePixel = 0
+	self.HealthFill.Parent = healthBack
+	corner(self.HealthFill, 7)
+	self.HealthText = label(healthBack, "100 / 100 HP", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), 11, true)
+	self.HealthText.TextXAlignment = Enum.TextXAlignment.Center
 
 	local missions = Instance.new("Frame")
 	missions.Size = UDim2.new(0, 270, 0, 190)
@@ -100,7 +118,7 @@ function Hud.new(player, stats, profile, config)
 
 	self.Notice = Instance.new("TextLabel")
 	self.Notice.AnchorPoint = Vector2.new(0.5, 1)
-	self.Notice.Position = UDim2.new(0.5, 0, 0.91, 0)
+	self.Notice.Position = UDim2.new(0.5, 0, 0.87, 0)
 	self.Notice.Size = UDim2.new(0.58, 0, 0, 58)
 	self.Notice.BackgroundColor3 = Color3.fromRGB(18, 20, 29)
 	self.Notice.BackgroundTransparency = 0.05
@@ -116,7 +134,7 @@ function Hud.new(player, stats, profile, config)
 
 	self.EventBanner = Instance.new("TextLabel")
 	self.EventBanner.AnchorPoint = Vector2.new(0.5, 0)
-	self.EventBanner.Position = UDim2.new(0.5, 0, 0, 116)
+	self.EventBanner.Position = UDim2.new(0.5, 0, 0, 138)
 	self.EventBanner.Size = UDim2.new(0, 430, 0, 46)
 	self.EventBanner.BackgroundColor3 = Color3.fromRGB(112, 55, 145)
 	self.EventBanner.BorderSizePixel = 0
@@ -130,29 +148,48 @@ function Hud.new(player, stats, profile, config)
 	local hint = Instance.new("TextLabel")
 	hint.AnchorPoint = Vector2.new(1, 1)
 	hint.Position = UDim2.new(1, -18, 1, -20)
-	hint.Size = UDim2.new(0, 255, 0, 45)
+	hint.Size = UDim2.new(0, 245, 0, 42)
 	hint.BackgroundColor3 = Color3.fromRGB(18, 20, 29)
 	hint.BackgroundTransparency = 0.12
 	hint.BorderSizePixel = 0
-	hint.Text = "Rift Blade - CLICK / TAP"
+	hint.Text = "CLICK / TAP  •  3-HIT COMBO"
 	hint.TextColor3 = Color3.fromRGB(230, 215, 255)
-	hint.TextSize = 15
+	hint.TextSize = 14
 	hint.Font = Enum.Font.GothamBold
 	hint.Parent = gui
 	corner(hint, 11)
 
 	self:BindStats()
+	self:BindCharacter(player.Character)
+	player.CharacterAdded:Connect(function(character)
+		self:BindCharacter(character)
+	end)
 	self:Update()
 	return self
+end
+
+function Hud:BindCharacter(character)
+	for _, connection in ipairs(self.HealthConnections) do connection:Disconnect() end
+	table.clear(self.HealthConnections)
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+	if not humanoid then return end
+	local function updateHealth()
+		local maxHealth = math.max(1, humanoid.MaxHealth)
+		local health = math.max(0, humanoid.Health)
+		self.HealthFill.Size = UDim2.new(math.clamp(health / maxHealth, 0, 1), 0, 1, 0)
+		self.HealthText.Text = math.floor(health) .. " / " .. math.floor(maxHealth) .. " HP"
+	end
+	table.insert(self.HealthConnections, humanoid.HealthChanged:Connect(updateHealth))
+	table.insert(self.HealthConnections, humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
+	updateHealth()
 end
 
 function Hud:BindStats()
 	local s = self.Stats
 	local p = self.Profile
 	for _, value in ipairs({s.Level, s.Coins, s.Gems, s.Power, p.XP, p.QuestKills, p.QuestHatches, p.QuestBosses, p.QuestKillsDone, p.QuestHatchesDone, p.QuestBossesDone}) do
-		value.Changed:Connect(function()
-			self:Update()
-		end)
+		value.Changed:Connect(function() self:Update() end)
 	end
 end
 
