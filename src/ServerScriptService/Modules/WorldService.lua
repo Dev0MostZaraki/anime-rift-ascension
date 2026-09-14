@@ -28,12 +28,13 @@ local function makePart(parent, name, size, cf, color, material)
 	return part
 end
 
-local function makeBillboard(parent, text, offset, color, size)
+local function makeBillboard(parent, text, offset, color, size, maxDistance)
 	local gui = Instance.new("BillboardGui")
 	gui.Size = size or UDim2.new(0, 230, 0, 64)
 	gui.StudsOffset = offset or Vector3.new(0, 5, 0)
 	gui.AlwaysOnTop = true
-	gui.MaxDistance = 160
+	gui.MaxDistance = maxDistance or 90
+	gui.LightInfluence = 0
 	gui.Parent = parent
 
 	local label = Instance.new("TextLabel")
@@ -42,7 +43,7 @@ local function makeBillboard(parent, text, offset, color, size)
 	label.BackgroundTransparency = 1
 	label.Text = text
 	label.TextColor3 = color or Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.25
+	label.TextStrokeTransparency = 0.3
 	label.TextScaled = true
 	label.TextWrapped = true
 	label.Font = Enum.Font.GothamBold
@@ -74,9 +75,7 @@ function WorldService:ConfigureLighting()
 	Lighting.OutdoorAmbient = Color3.fromRGB(92, 92, 115)
 
 	for _, object in ipairs(Lighting:GetChildren()) do
-		if object.Name == "AnimeRiftFX" then
-			object:Destroy()
-		end
+		if object.Name == "AnimeRiftFX" then object:Destroy() end
 	end
 
 	local atmosphere = Instance.new("Atmosphere")
@@ -91,16 +90,16 @@ function WorldService:ConfigureLighting()
 
 	local bloom = Instance.new("BloomEffect")
 	bloom.Name = "AnimeRiftFX"
-	bloom.Intensity = 0.55
-	bloom.Size = 32
-	bloom.Threshold = 1.1
+	bloom.Intensity = 0.5
+	bloom.Size = 28
+	bloom.Threshold = 1.15
 	bloom.Parent = Lighting
 
 	local correction = Instance.new("ColorCorrectionEffect")
 	correction.Name = "AnimeRiftFX"
-	correction.Brightness = 0.015
+	correction.Brightness = 0.01
 	correction.Contrast = 0.08
-	correction.Saturation = 0.08
+	correction.Saturation = 0.06
 	correction.Parent = Lighting
 end
 
@@ -110,7 +109,7 @@ function WorldService:BuildHub()
 
 	local core = makePart(map, "HubCore", Vector3.new(26, 2, 26), CFrame.new(0, 3, 0), Color3.fromRGB(106, 75, 180), Enum.Material.Neon)
 	core.CanCollide = false
-	makeBillboard(core, "ANIME RIFT\nASCENSION", Vector3.new(0, 8, 0), Color3.fromRGB(235, 220, 255), UDim2.new(0, 300, 0, 85))
+	makeBillboard(core, "ANIME RIFT\nASCENSION", Vector3.new(0, 8, 0), Color3.fromRGB(235, 220, 255), UDim2.new(0, 300, 0, 85), 70)
 
 	for _, x in ipairs({-58, 58}) do
 		for _, z in ipairs({-58, 58}) do
@@ -131,10 +130,10 @@ function WorldService:BuildHub()
 	spawn.Parent = map
 
 	local portalPositions = {
-		Vector3.new(-45, 4, -42),
-		Vector3.new(-15, 4, -42),
-		Vector3.new(15, 4, -42),
-		Vector3.new(45, 4, -42),
+		Vector3.new(-54, 4, -44),
+		Vector3.new(-18, 4, -44),
+		Vector3.new(18, 4, -44),
+		Vector3.new(54, 4, -44),
 	}
 
 	for id, zone in ipairs(self.Context.Config.Zones) do
@@ -146,10 +145,9 @@ function WorldService:BuildHub()
 		left.CanCollide, right.CanCollide, top.CanCollide = false, false, false
 
 		local req = id == 1 and "FREE" or ("Lv." .. zone.UnlockLevel .. " • " .. zone.UnlockCost .. " Coins")
-		makeBillboard(pad, zone.Name .. "\n" .. req, Vector3.new(0, 7, 0), Color3.fromRGB(245, 245, 250), UDim2.new(0, 220, 0, 72))
+		makeBillboard(pad, zone.Name .. "\n" .. req, Vector3.new(0, 7, 0), Color3.fromRGB(245, 245, 250), UDim2.new(0, 190, 0, 60), 32)
 
-		local p = prompt(pad, "Enter", zone.Name)
-		p.Triggered:Connect(function(player)
+		prompt(pad, "Enter", zone.Name).Triggered:Connect(function(player)
 			self:TryEnterZone(player, id, pad)
 		end)
 	end
@@ -163,7 +161,7 @@ function WorldService:BuildZone(zone)
 
 	local crystal = makePart(map, zone.Name .. "_Core", Vector3.new(8, 20, 8), CFrame.new(center + Vector3.new(0, 13, 0)) * CFrame.Angles(0, 0, math.rad(45)), zone.Color, Enum.Material.Neon)
 	crystal.CanCollide = false
-	makeBillboard(crystal, zone.Name, Vector3.new(0, 13, 0), Color3.fromRGB(245, 245, 250))
+	makeBillboard(crystal, zone.Name, Vector3.new(0, 13, 0), Color3.fromRGB(245, 245, 250), UDim2.new(0, 230, 0, 54), 72)
 
 	for _, offset in ipairs({Vector3.new(-48, 8, -48), Vector3.new(48, 8, -48), Vector3.new(-48, 8, 48), Vector3.new(48, 8, 48)}) do
 		makePart(map, zone.Name .. "_Column", Vector3.new(5, 20, 5), CFrame.new(center + offset), zone.Color:Lerp(Color3.fromRGB(30, 30, 40), 0.38), Enum.Material.Rock)
@@ -181,10 +179,11 @@ function WorldService:BuildZone(zone)
 	self.ZoneSpawnPoints[zone.Id] = center + Vector3.new(0, 5, 42)
 
 	local returnPad = makePart(map, zone.Name .. "_Return", Vector3.new(13, 1, 13), CFrame.new(center + Vector3.new(0, 3, 50)), Color3.fromRGB(150, 120, 225), Enum.Material.Neon)
-	makeBillboard(returnPad, "RETURN TO HUB", Vector3.new(0, 4, 0), Color3.fromRGB(240, 230, 255))
+	makeBillboard(returnPad, "RETURN TO HUB", Vector3.new(0, 4, 0), Color3.fromRGB(240, 230, 255), UDim2.new(0, 180, 0, 44), 36)
 	prompt(returnPad, "Return", "Central Hub", 0.1).Triggered:Connect(function(player)
 		if not self:PlayerNear(player, returnPad, 16) then return end
 		self:TeleportToHub(player)
+		self.Context.Remotes.ZoneEntered:FireClient(player, "Central Hub", Color3.fromRGB(154, 102, 235))
 	end)
 
 	local egg = self.Context.Config.Eggs[zone.Id]
@@ -193,13 +192,11 @@ function WorldService:BuildZone(zone)
 	local orb = makePart(map, "EggOrb_" .. zone.Id, Vector3.new(7, 9, 7), CFrame.new(pos + Vector3.new(0, 7, 0)), zone.Color:Lerp(Color3.new(1, 1, 1), 0.25), Enum.Material.Neon)
 	orb.Shape = Enum.PartType.Ball
 	orb.CanCollide = false
-	makeBillboard(orb, egg.Name .. "\n" .. egg.Cost .. " Coins", Vector3.new(0, 6, 0), Color3.fromRGB(255, 245, 220), UDim2.new(0, 210, 0, 65))
+	makeBillboard(orb, egg.Name .. "\n" .. egg.Cost .. " Coins", Vector3.new(0, 6, 0), Color3.fromRGB(255, 245, 220), UDim2.new(0, 190, 0, 56), 42)
 
 	local hatch = prompt(pedestal, "Hatch 1", egg.Name, 0.25)
 	hatch.Triggered:Connect(function(player)
-		if self:PlayerNear(player, pedestal, 16) then
-			self.Context.Services.PetService:Hatch(player, zone.Id)
-		end
+		if self:PlayerNear(player, pedestal, 16) then self.Context.Services.PetService:Hatch(player, zone.Id) end
 	end)
 	self.EggPedestals[zone.Id] = pedestal
 end
@@ -231,6 +228,7 @@ function WorldService:TryEnterZone(player, zoneId, pad)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if root then
 		root.CFrame = CFrame.new(self.ZoneSpawnPoints[zoneId])
+		self.Context.Remotes.ZoneEntered:FireClient(player, zone.Name, zone.Color)
 	end
 end
 
@@ -269,9 +267,7 @@ function WorldService:Start()
 	safety.Transparency = 1
 
 	self:BuildHub()
-	for _, zone in ipairs(self.Context.Config.Zones) do
-		self:BuildZone(zone)
-	end
+	for _, zone in ipairs(self.Context.Config.Zones) do self:BuildZone(zone) end
 end
 
 return WorldService
