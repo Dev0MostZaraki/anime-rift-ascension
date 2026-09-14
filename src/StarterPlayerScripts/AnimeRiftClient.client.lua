@@ -10,39 +10,45 @@ local Config = require(AnimeRift:WaitForChild("Config"))
 local Hud = require(AnimeRift:WaitForChild("Client"):WaitForChild("Hud"))
 local PetUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("PetUI"))
 local CombatUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("CombatUI"))
+local ArsenalUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("ArsenalUI"))
+local RelicUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("RelicUI"))
 
 local remotes = AnimeRift:WaitForChild("Remotes", 15)
-if not remotes then
-	warn("Anime Rift remotes were not created. Check ServerScriptService output.")
-	return
-end
+if not remotes then warn("Anime Rift remotes were not created. Check ServerScriptService output.") return end
 
 local stats = player:WaitForChild("leaderstats", 15)
 local profile = player:WaitForChild("RiftProfile", 15)
-local inventory = player:WaitForChild("PetInventory", 15)
-if not stats or not profile or not inventory then
+local petInventory = player:WaitForChild("PetInventory", 15)
+local relicInventory = player:WaitForChild("RelicInventory", 15)
+if not stats or not profile or not petInventory or not relicInventory then
 	warn("Anime Rift client could not find server-created player data.")
 	return
 end
 
--- The blade is auto-equipped, so Roblox's default backpack only collides with our combat HUD.
 task.spawn(function()
 	for _ = 1, 8 do
-		local ok = pcall(function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-		end)
+		local ok = pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) end)
 		if ok then break end
 		task.wait(0.5)
 	end
 end)
 
 local hud = Hud.new(player, stats, profile, Config)
-PetUI.new(hud.Gui, inventory, Config, remotes:WaitForChild("EquipPet"))
+PetUI.new(hud.Gui, petInventory, Config, remotes:WaitForChild("EquipPet"))
+ArsenalUI.new(hud.Gui, player, profile, stats, Config, remotes:WaitForChild("StyleAction"))
+RelicUI.new(hud.Gui, relicInventory, Config, remotes:WaitForChild("EquipRelic"))
 
 local combatUI
 combatUI = CombatUI.new(hud.Gui, Config, function(name)
 	remotes.Ability:FireServer(name)
 end)
+
+local function refreshStyle()
+	local style = Config.Styles[profile.EquippedStyle.Value] or Config.Styles.RiftBlade
+	combatUI:SetStyle(style)
+end
+refreshStyle()
+profile.EquippedStyle.Changed:Connect(refreshStyle)
 
 local zoneBanner = Instance.new("TextLabel")
 zoneBanner.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -75,28 +81,20 @@ local function showZone(name, color)
 	end)
 end
 
-remotes.Notify.OnClientEvent:Connect(function(text, kind)
-	hud:Notify(text, kind)
-end)
-
+remotes.Notify.OnClientEvent:Connect(function(text, kind) hud:Notify(text, kind) end)
 remotes.WorldEvent.OnClientEvent:Connect(function(eventName, duration)
 	if eventName == "RIFT SURGE" then hud:ShowRiftSurge(duration) end
 end)
-
 remotes.ZoneEntered.OnClientEvent:Connect(showZone)
 remotes.CombatFeedback.OnClientEvent:Connect(function(kind, value)
-	if kind == "Combo" then
-		combatUI:ShowCombo(tonumber(value) or 1)
-	end
+	if kind == "Combo" then combatUI:ShowCombo(tonumber(value) or 1) end
 end)
 
 local wired = setmetatable({}, {__mode = "k"})
 local function wireTool(tool)
-	if not tool:IsA("Tool") or tool.Name ~= "Rift Blade" or wired[tool] then return end
+	if not tool:IsA("Tool") or tool:GetAttribute("AnimeRiftWeapon") ~= true or wired[tool] then return end
 	wired[tool] = true
-	tool.Activated:Connect(function()
-		remotes.Attack:FireServer()
-	end)
+	tool.Activated:Connect(function() remotes.Attack:FireServer() end)
 end
 
 local backpack = player:WaitForChild("Backpack")
