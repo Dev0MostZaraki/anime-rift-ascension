@@ -118,7 +118,7 @@ function FighterAssistUI.new(gui, inventory, config, remote)
 		frame.Activated:Connect(function() self:TryActivate(slot) end)
 	end
 
-	local function input(input, processed)
+	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then return end
 		for slot, info in pairs(KEYS) do
 			if input.KeyCode == info.Code then
@@ -126,10 +126,13 @@ function FighterAssistUI.new(gui, inventory, config, remote)
 				return
 			end
 		end
-	end
-	UserInputService.InputBegan:Connect(input)
+	end)
 
 	remote.OnClientEvent:Connect(function(action, slot, seconds, fighterId)
+		if action == "ResetCooldowns" then
+			table.clear(self.CooldownEnds)
+			return
+		end
 		slot = tonumber(slot)
 		if not slot or not self.Buttons[slot] then return end
 		if action == "Activated" or action == "Cooldown" then
