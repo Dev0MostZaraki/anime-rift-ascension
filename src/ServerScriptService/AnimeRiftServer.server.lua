@@ -36,6 +36,7 @@ local Context = {
 		Notify = makeRemote("Notify"),
 		WorldEvent = makeRemote("WorldEvent"),
 		ZoneEntered = makeRemote("ZoneEntered"),
+		Dialog = makeRemote("Dialog"),
 	},
 	Services = {},
 }
@@ -63,7 +64,12 @@ local WorldDecorService = require(Modules:WaitForChild("WorldDecorService"))
 local OpenWorldSliceService = require(Modules:WaitForChild("OpenWorldSliceService"))
 local OpenWorldExpansionService = require(Modules:WaitForChild("OpenWorldExpansionService"))
 local EnvironmentAssetService = require(Modules:WaitForChild("EnvironmentAssetService"))
+local WorldZoneService = require(Modules:WaitForChild("WorldZoneService"))
+local LivingWorldService = require(Modules:WaitForChild("LivingWorldService"))
 local CombatService = require(Modules:WaitForChild("CombatService"))
+local NavigationService = require(Modules:WaitForChild("NavigationService"))
+local EnemyAIService = require(Modules:WaitForChild("EnemyAIService"))
+local RareHuntService = require(Modules:WaitForChild("RareHuntService"))
 local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
 local MovementService = require(Modules:WaitForChild("MovementService"))
@@ -85,7 +91,12 @@ Context.Services.WorldDecorService = WorldDecorService.new(Context)
 Context.Services.OpenWorldSliceService = OpenWorldSliceService.new(Context)
 Context.Services.OpenWorldExpansionService = OpenWorldExpansionService.new(Context)
 Context.Services.EnvironmentAssetService = EnvironmentAssetService.new(Context)
+Context.Services.WorldZoneService = WorldZoneService.new(Context)
+Context.Services.LivingWorldService = LivingWorldService.new(Context)
 Context.Services.CombatService = CombatService.new(Context)
+Context.Services.NavigationService = NavigationService.new(Context)
+Context.Services.EnemyAIService = EnemyAIService.new(Context)
+Context.Services.RareHuntService = RareHuntService.new(Context)
 Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
 Context.Services.MovementService = MovementService.new(Context)
@@ -125,14 +136,16 @@ do
 		end
 	end
 
-	-- Hatcheries are peaceful pockets. Normal enemies drop aggro while players hatch.
+	-- Hatcheries are peaceful pockets. ZonePlus provides the primary flag while
+	-- the original distance test remains as a safe fallback if packages are missing.
 	function combat:ClosestPlayer(position, range)
 		local bestPlayer, bestRoot, bestDistance = nil, nil, range
 		for _, player in ipairs(Players:GetPlayers()) do
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if humanoid and humanoid.Health > 0 and root and not slice:IsSafeZone(root.Position) then
+			local safe = player:GetAttribute("InHatcherySafeZone") == true or (root and slice:IsSafeZone(root.Position))
+			if humanoid and humanoid.Health > 0 and root and not safe then
 				local distance = (root.Position - position).Magnitude
 				if distance <= bestDistance then
 					bestPlayer, bestRoot, bestDistance = player, root, distance
@@ -166,7 +179,12 @@ end
 Context.Services.OpenWorldSliceService:Start()
 Context.Services.OpenWorldExpansionService:Start()
 Context.Services.EnvironmentAssetService:Start()
+Context.Services.WorldZoneService:Start()
 Context.Services.CoreLoopService:Start()
+Context.Services.NavigationService:Start()
+Context.Services.EnemyAIService:Start()
+Context.Services.RareHuntService:Start()
+Context.Services.LivingWorldService:Start()
 Context.Services.CreatureArtService:Start()
 Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
