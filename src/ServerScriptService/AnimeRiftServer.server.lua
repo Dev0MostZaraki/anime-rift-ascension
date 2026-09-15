@@ -37,6 +37,7 @@ local Context = {
 		WorldEvent = makeRemote("WorldEvent"),
 		ZoneEntered = makeRemote("ZoneEntered"),
 		Dialog = makeRemote("Dialog"),
+		WildEgg = makeRemote("WildEgg"),
 	},
 	Services = {},
 }
@@ -74,6 +75,8 @@ local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
 local MovementService = require(Modules:WaitForChild("MovementService"))
 local EventService = require(Modules:WaitForChild("EventService"))
+local ActivityService = require(Modules:WaitForChild("ActivityService"))
+local WildEggService = require(Modules:WaitForChild("WildEggService"))
 local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
 
@@ -101,6 +104,8 @@ Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
 Context.Services.MovementService = MovementService.new(Context)
 Context.Services.EventService = EventService.new(Context)
+Context.Services.ActivityService = ActivityService.new(Context)
+Context.Services.WildEggService = WildEggService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
@@ -180,6 +185,7 @@ Context.Services.OpenWorldSliceService:Start()
 Context.Services.OpenWorldExpansionService:Start()
 Context.Services.EnvironmentAssetService:Start()
 Context.Services.WorldZoneService:Start()
+Context.Services.ActivityService:Start()
 Context.Services.CoreLoopService:Start()
 Context.Services.NavigationService:Start()
 Context.Services.EnemyAIService:Start()
@@ -195,6 +201,7 @@ Context.Services.EnemyVisualService:Start()
 Context.Services.DashService:Start()
 Context.Services.MovementService:Start()
 Context.Services.EventService:Start()
+Context.Services.WildEggService:Start()
 Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
 
