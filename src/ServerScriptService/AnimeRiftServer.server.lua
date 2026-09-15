@@ -93,6 +93,10 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
+-- Resolve the persistence backend before players load. If Wally/ProfileStore is not
+-- installed yet, DataService deliberately falls back to the untouched v2 store.
+Context.Services.DataService:InitializeProfileStore()
+
 -- Combat remains server-authoritative while open-world services own encounter placement.
 do
 	local combat = Context.Services.CombatService
