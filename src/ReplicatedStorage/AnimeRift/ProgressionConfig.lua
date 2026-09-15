@@ -3,9 +3,10 @@ local ProgressionConfig = {}
 ProgressionConfig.EffectivePlaytime = {
 	TickSeconds = 1,
 	ActiveGraceSeconds = 12,
-	MovementSampleSeconds = 1,
 	MinimumMovementStuds = 3.5,
-	MaximumPlausibleMovementStudsPerSample = 95,
+	-- Sprint is 27 studs/s and a valid dash is ~17 studs. 60 leaves jitter room
+	-- without giving teleport/sweep scripts a 95+ studs/s allowance.
+	MaximumPlausibleMovementStudsPerSample = 60,
 	DailyRewards = {
 		{Seconds = 15 * 60, Coins = 750, Gems = 0, RiftTickets = 0},
 		{Seconds = 30 * 60, Coins = 1500, Gems = 3, RiftTickets = 0},
@@ -45,7 +46,6 @@ ProgressionConfig.WildEgg = {
 	MinimumSlopeNormalY = 0.78,
 	MinimumRadiusFromZoneCenter = 42,
 	MaximumRadiusFromZoneCenter = 122,
-	TeleportRejectDistancePerScan = 140,
 	TeleportSuspicionSeconds = 5,
 	Tiers = {
 		{Id = "White", Weight = 5200, Color = Color3.fromRGB(235, 238, 245), BroadcastClaim = false, Pets = {
