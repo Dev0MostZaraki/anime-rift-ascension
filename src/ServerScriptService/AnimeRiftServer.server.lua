@@ -37,6 +37,7 @@ local Context = {
 		WorldEvent = makeRemote("WorldEvent"),
 		ZoneEntered = makeRemote("ZoneEntered"),
 		Dialog = makeRemote("Dialog"),
+		WildEgg = makeRemote("WildEgg"),
 	},
 	Services = {},
 }
@@ -57,6 +58,7 @@ local CoreLoopService = require(Modules:WaitForChild("CoreLoopService"))
 local AssetIntakeService = require(Modules:WaitForChild("AssetIntakeService"))
 local CreatureArtService = require(Modules:WaitForChild("CreatureArtService"))
 local PetService = require(Modules:WaitForChild("PetService"))
+local PetMutationService = require(Modules:WaitForChild("PetMutationService"))
 local ArsenalService = require(Modules:WaitForChild("ArsenalService"))
 local LootService = require(Modules:WaitForChild("LootService"))
 local WorldService = require(Modules:WaitForChild("WorldService"))
@@ -74,6 +76,8 @@ local EnemyVisualService = require(Modules:WaitForChild("EnemyVisualService"))
 local DashService = require(Modules:WaitForChild("DashService"))
 local MovementService = require(Modules:WaitForChild("MovementService"))
 local EventService = require(Modules:WaitForChild("EventService"))
+local ActivityService = require(Modules:WaitForChild("ActivityService"))
+local WildEggService = require(Modules:WaitForChild("WildEggService"))
 local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
 
@@ -84,6 +88,7 @@ Context.Services.CoreLoopService = CoreLoopService.new(Context)
 Context.Services.AssetIntakeService = AssetIntakeService.new(Context)
 Context.Services.CreatureArtService = CreatureArtService.new(Context)
 Context.Services.PetService = PetService.new(Context)
+Context.Services.PetMutationService = PetMutationService.new(Context)
 Context.Services.ArsenalService = ArsenalService.new(Context)
 Context.Services.LootService = LootService.new(Context)
 Context.Services.WorldService = WorldService.new(Context)
@@ -101,6 +106,8 @@ Context.Services.EnemyVisualService = EnemyVisualService.new(Context)
 Context.Services.DashService = DashService.new(Context)
 Context.Services.MovementService = MovementService.new(Context)
 Context.Services.EventService = EventService.new(Context)
+Context.Services.ActivityService = ActivityService.new(Context)
+Context.Services.WildEggService = WildEggService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
 
@@ -156,6 +163,36 @@ do
 	end
 end
 
+-- The world already has legitimate Waystone and hub fast-travel. Mark movement as
+-- legitimate only after the server-side world method actually changed position.
+do
+	local world = Context.Services.WorldService
+	local activity = Context.Services.ActivityService
+	local rawTryEnterZone = world.TryEnterZone
+	function world:TryEnterZone(player, zoneId, stone)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local before = root and root.Position or nil
+		local result = rawTryEnterZone(self, player, zoneId, stone)
+		root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if before and root and (root.Position - before).Magnitude > 25 then
+			activity:MarkLegitimateTeleport(player, 4)
+		end
+		return result
+	end
+
+	local rawTeleportToHub = world.TeleportToHub
+	function world:TeleportToHub(player)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local before = root and root.Position or nil
+		local result = rawTeleportToHub(self, player)
+		root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if before and root and (root.Position - before).Magnitude > 25 then
+			activity:MarkLegitimateTeleport(player, 4)
+		end
+		return result
+	end
+end
+
 -- Asset intake starts first so Creator Store art is sanitized before any service can clone it.
 Context.Services.AssetIntakeService:Start()
 Context.Services.WorldService:Start()
@@ -180,6 +217,7 @@ Context.Services.OpenWorldSliceService:Start()
 Context.Services.OpenWorldExpansionService:Start()
 Context.Services.EnvironmentAssetService:Start()
 Context.Services.WorldZoneService:Start()
+Context.Services.ActivityService:Start()
 Context.Services.CoreLoopService:Start()
 Context.Services.NavigationService:Start()
 Context.Services.EnemyAIService:Start()
@@ -188,6 +226,7 @@ Context.Services.LivingWorldService:Start()
 Context.Services.CreatureArtService:Start()
 Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
+Context.Services.PetMutationService:Start()
 Context.Services.ArsenalService:Start()
 Context.Services.LootService:Start()
 Context.Services.CombatService:Start()
@@ -195,6 +234,7 @@ Context.Services.EnemyVisualService:Start()
 Context.Services.DashService:Start()
 Context.Services.MovementService:Start()
 Context.Services.EventService:Start()
+Context.Services.WildEggService:Start()
 Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
 
