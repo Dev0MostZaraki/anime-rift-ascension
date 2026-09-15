@@ -27,6 +27,7 @@ function PlayerService:PrepareCharacter(player)
 	task.wait(0.2)
 	if not player.Parent then return end
 	self.Context.Services.StatsService:ApplyCharacter(player, true)
+	self.Context.Services.ActivityService:MarkLegitimateTeleport(player, 4)
 	self.Context.Services.WorldService:TeleportToHub(player)
 	task.wait(0.35)
 	if not player.Parent then return end
@@ -67,7 +68,7 @@ function PlayerService:SetupPlayer(player)
 		if combatStats then
 			self.Context:Notify(player, string.format("Lv.%d • %d HP • %.0f Defense", stats.Level.Value, combatStats.MaxHealth.Value, combatStats.Defense.Value), "info")
 		end
-		self.Context:Notify(player, string.upper(self.Context.Version.Version) .. " • Explore, master styles, clear regional quests and hunt elites.", "info")
+		self.Context:Notify(player, string.upper(self.Context.Version.Version) .. " • Explore, fight, hatch and build Resonance through active play.", "info")
 		self.Context:Notify(player, "DATA • " .. data:GetBackendName(), data.UsingProfileStore and "success" or "info")
 		if not data.PersistenceEnabled then
 			self.Context:Notify(player, "Studio session mode: persistent saving is currently unavailable.", "info")
@@ -75,18 +76,6 @@ function PlayerService:SetupPlayer(player)
 	end)
 
 	if player.Character then task.defer(function() self:PrepareCharacter(player) end) end
-
-	task.spawn(function()
-		while player.Parent do
-			task.wait(self.Context.Config.Game.PlaytimeRewardSeconds)
-			if not player.Parent then break end
-			local currentStats = player:FindFirstChild("leaderstats")
-			if currentStats then
-				currentStats.Coins.Value += self.Context.Config.Game.PlaytimeRewardCoins
-				self.Context:Notify(player, "PLAYTIME REWARD • +" .. self.Context.Config.Game.PlaytimeRewardCoins .. " Coins", "loot")
-			end
-		end
-	end)
 end
 
 function PlayerService:Start()
@@ -109,6 +98,7 @@ function PlayerService:Start()
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			if root and humanoid and humanoid.Health > 0 and root.Position.Y < -35 then
+				self.Context.Services.ActivityService:MarkLegitimateTeleport(player, 4)
 				self.Context.Services.WorldService:TeleportToHub(player)
 				self.Context:Notify(player, "You fell beyond the world and were returned to Rift Haven.", "info")
 			end
