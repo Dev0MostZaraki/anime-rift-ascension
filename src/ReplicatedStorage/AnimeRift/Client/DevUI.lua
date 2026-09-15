@@ -140,9 +140,10 @@ function DevUI.new(gui, player, remote)
 	button(list, "RESET COOLDOWNS", "Q / E / R / combo / dash", 10, Color3.fromRGB(45, 88, 125), function() send("ResetCooldowns") end)
 	button(list, "RESPAWN BOSS", "Fresh Rift Tyrant instance", 11, Color3.fromRGB(130, 48, 72), function() send("RespawnBoss") end)
 	button(list, "SPAWN RARE", "Force named hunt in current region", 12, Color3.fromRGB(128, 94, 38), function() send("Rare") end)
-	button(list, "RIFT SURGE", "Force 60s double rewards", 13, Color3.fromRGB(105, 47, 135), function() send("Surge") end)
-	button(list, "RETURN TO HUB", "Instant safe teleport", 14, Color3.fromRGB(60, 64, 82), function() send("Hub") end)
-	button(list, "SAVE NOW", "Request DataStore save", 15, Color3.fromRGB(62, 85, 65), function() send("Save") end)
+	button(list, "TEST WILD EGG", "Spawn nearby • enable claim test", 13, Color3.fromRGB(88, 72, 132), function() send("WildEgg") end)
+	button(list, "RIFT SURGE", "Force 60s double rewards", 14, Color3.fromRGB(105, 47, 135), function() send("Surge") end)
+	button(list, "RETURN TO HUB", "Instant safe teleport", 15, Color3.fromRGB(60, 64, 82), function() send("Hub") end)
+	button(list, "SAVE NOW", "Request DataStore save", 16, Color3.fromRGB(62, 85, 65), function() send("Save") end)
 
 	local function toggle()
 		panel.Visible = not panel.Visible
