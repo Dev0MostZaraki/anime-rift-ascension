@@ -79,7 +79,7 @@ function DevUI.new(gui, player, remote)
 	panel.Name = "DevPanel"
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.new(0, 610, 0, 500)
+	panel.Size = UDim2.new(0, 610, 0, 540)
 	panel.BackgroundColor3 = Color3.fromRGB(14, 15, 22)
 	panel.BackgroundTransparency = 0.02
 	panel.BorderSizePixel = 0
@@ -106,10 +106,16 @@ function DevUI.new(gui, player, remote)
 	close.Parent = panel
 	corner(close, 9)
 
-	local list = Instance.new("Frame")
+	local list = Instance.new("ScrollingFrame")
+	list.Name = "Controls"
 	list.Size = UDim2.new(1, -28, 1, -88)
 	list.Position = UDim2.new(0, 14, 0, 76)
 	list.BackgroundTransparency = 1
+	list.BorderSizePixel = 0
+	list.CanvasSize = UDim2.fromOffset(0, 0)
+	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	list.ScrollBarThickness = 5
+	list.ScrollBarImageColor3 = Color3.fromRGB(108, 88, 125)
 	list.Parent = panel
 
 	local grid = Instance.new("UIGridLayout")
@@ -127,15 +133,16 @@ function DevUI.new(gui, player, remote)
 	button(list, "+10 LEVELS", "Fast progression test", 3, Color3.fromRGB(75, 65, 125), function() send("Level10") end)
 	button(list, "+10K COINS", "Economy testing", 4, Color3.fromRGB(95, 72, 42), function() send("Coins10K") end)
 	button(list, "+100 GEMS", "Premium currency test", 5, Color3.fromRGB(52, 88, 120), function() send("Gems100") end)
-	button(list, "UNLOCK ZONES", "Open every portal", 6, Color3.fromRGB(48, 92, 82), function() send("UnlockZones") end)
+	button(list, "UNLOCK ZONES", "Open every region", 6, Color3.fromRGB(48, 92, 82), function() send("UnlockZones") end)
 	button(list, "UNLOCK STYLES", "Open full Arsenal", 7, Color3.fromRGB(78, 62, 120), function() send("UnlockStyles") end)
 	button(list, "TEST RELIC", "Boss-tier Void relic roll", 8, Color3.fromRGB(115, 72, 36), function() send("TestRelic") end)
 	button(list, "FULL HEAL", "Restore current character", 9, Color3.fromRGB(52, 105, 72), function() send("Heal") end)
 	button(list, "RESET COOLDOWNS", "Q / E / R / combo / dash", 10, Color3.fromRGB(45, 88, 125), function() send("ResetCooldowns") end)
 	button(list, "RESPAWN BOSS", "Fresh Rift Tyrant instance", 11, Color3.fromRGB(130, 48, 72), function() send("RespawnBoss") end)
-	button(list, "RIFT SURGE", "Force 60s double rewards", 12, Color3.fromRGB(105, 47, 135), function() send("Surge") end)
-	button(list, "RETURN TO HUB", "Instant safe teleport", 13, Color3.fromRGB(60, 64, 82), function() send("Hub") end)
-	button(list, "SAVE NOW", "Request DataStore save", 14, Color3.fromRGB(62, 85, 65), function() send("Save") end)
+	button(list, "SPAWN RARE", "Force named hunt in current region", 12, Color3.fromRGB(128, 94, 38), function() send("Rare") end)
+	button(list, "RIFT SURGE", "Force 60s double rewards", 13, Color3.fromRGB(105, 47, 135), function() send("Surge") end)
+	button(list, "RETURN TO HUB", "Instant safe teleport", 14, Color3.fromRGB(60, 64, 82), function() send("Hub") end)
+	button(list, "SAVE NOW", "Request DataStore save", 15, Color3.fromRGB(62, 85, 65), function() send("Save") end)
 
 	local function toggle()
 		panel.Visible = not panel.Visible
