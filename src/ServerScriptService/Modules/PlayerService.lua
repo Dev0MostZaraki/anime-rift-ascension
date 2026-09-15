@@ -25,9 +25,11 @@ end
 
 function PlayerService:PrepareCharacter(player)
 	task.wait(0.2)
+	if not player.Parent then return end
 	self.Context.Services.StatsService:ApplyCharacter(player, true)
 	self.Context.Services.WorldService:TeleportToHub(player)
 	task.wait(0.35)
+	if not player.Parent then return end
 	self.Context.Services.CombatService:GiveWeapon(player)
 	self.Context.Services.PetService:RebuildFollowers(player)
 end
@@ -35,7 +37,14 @@ end
 function PlayerService:SetupPlayer(player)
 	local data = self.Context.Services.DataService
 	data:CreateProfile(player)
-	data:Load(player)
+	local loaded = data:Load(player)
+	if loaded == false then
+		if player.Parent == Players then
+			player:Kick("Your save could not be opened safely. Please rejoin in a moment.")
+		end
+		return
+	end
+
 	data:RecalculatePower(player)
 	self.Context.Services.StatsService:EnsureCombatStats(player)
 	self.Context.Services.StatsService:Calculate(player)
@@ -53,11 +62,13 @@ function PlayerService:SetupPlayer(player)
 	player.CharacterAdded:Connect(function()
 		self:PrepareCharacter(player)
 		task.wait(0.9)
+		if not player.Parent then return end
 		local combatStats = player:FindFirstChild("CombatStats")
 		if combatStats then
 			self.Context:Notify(player, string.format("Lv.%d • %d HP • %.0f Defense", stats.Level.Value, combatStats.MaxHealth.Value, combatStats.Defense.Value), "info")
 		end
-		self.Context:Notify(player, "4.6 CORE LOOP • Regional quest chains, elites and mastery perks are now active.", "info")
+		self.Context:Notify(player, string.upper(self.Context.Version.Version) .. " • Explore, master styles, clear regional quests and hunt elites.", "info")
+		self.Context:Notify(player, "DATA • " .. data:GetBackendName(), data.UsingProfileStore and "success" or "info")
 		if not data.PersistenceEnabled then
 			self.Context:Notify(player, "Studio session mode: persistent saving is currently unavailable.", "info")
 		end
@@ -82,7 +93,7 @@ function PlayerService:Start()
 	Players.PlayerAdded:Connect(function(player) self:SetupPlayer(player) end)
 
 	Players.PlayerRemoving:Connect(function(player)
-		self.Context.Services.DataService:Save(player)
+		self.Context.Services.DataService:Release(player)
 		self.Context.Services.PetService:ClearFollowers(player)
 		self.Context.Services.StatsService:Cleanup(player)
 		self.Context.Services.CombatService.LastAttack[player] = nil
@@ -104,6 +115,8 @@ function PlayerService:Start()
 		end
 	end)
 
+	-- Runtime state still lives in Instances. Snapshot it frequently; ProfileStore owns
+	-- the DataStore write, autosave and session lock around those snapshots.
 	task.spawn(function()
 		while self.Context.WorldFolder and self.Context.WorldFolder.Parent do
 			task.wait(self.Context.Config.Game.AutosaveSeconds)
@@ -112,8 +125,10 @@ function PlayerService:Start()
 	end)
 
 	game:BindToClose(function()
-		for _, player in ipairs(Players:GetPlayers()) do self.Context.Services.DataService:Save(player) end
-		task.wait(2)
+		for _, player in ipairs(Players:GetPlayers()) do
+			self.Context.Services.DataService:Release(player)
+		end
+		task.wait(1)
 	end)
 end
 
