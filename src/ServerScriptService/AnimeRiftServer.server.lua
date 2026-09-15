@@ -163,6 +163,36 @@ do
 	end
 end
 
+-- The world already has legitimate Waystone and hub fast-travel. Mark movement as
+-- legitimate only after the server-side world method actually changed position.
+do
+	local world = Context.Services.WorldService
+	local activity = Context.Services.ActivityService
+	local rawTryEnterZone = world.TryEnterZone
+	function world:TryEnterZone(player, zoneId, stone)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local before = root and root.Position or nil
+		local result = rawTryEnterZone(self, player, zoneId, stone)
+		root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if before and root and (root.Position - before).Magnitude > 25 then
+			activity:MarkLegitimateTeleport(player, 4)
+		end
+		return result
+	end
+
+	local rawTeleportToHub = world.TeleportToHub
+	function world:TeleportToHub(player)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local before = root and root.Position or nil
+		local result = rawTeleportToHub(self, player)
+		root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if before and root and (root.Position - before).Magnitude > 25 then
+			activity:MarkLegitimateTeleport(player, 4)
+		end
+		return result
+	end
+end
+
 -- Asset intake starts first so Creator Store art is sanitized before any service can clone it.
 Context.Services.AssetIntakeService:Start()
 Context.Services.WorldService:Start()
