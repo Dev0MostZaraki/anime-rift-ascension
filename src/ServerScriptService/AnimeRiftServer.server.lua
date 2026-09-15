@@ -39,6 +39,7 @@ local Context = {
 		Dialog = makeRemote("Dialog"),
 		WildEgg = makeRemote("WildEgg"),
 		FighterAction = makeRemote("FighterAction"),
+		FighterAssist = makeRemote("FighterAssist"),
 	},
 	Services = {},
 }
@@ -80,6 +81,7 @@ local EventService = require(Modules:WaitForChild("EventService"))
 local ActivityService = require(Modules:WaitForChild("ActivityService"))
 local WildEggService = require(Modules:WaitForChild("WildEggService"))
 local FighterService = require(Modules:WaitForChild("FighterService"))
+local FighterAssistService = require(Modules:WaitForChild("FighterAssistService"))
 local ResetService = require(Modules:WaitForChild("ResetService"))
 local DevService = require(Modules:WaitForChild("DevService"))
 local PlayerService = require(Modules:WaitForChild("PlayerService"))
@@ -112,6 +114,7 @@ Context.Services.EventService = EventService.new(Context)
 Context.Services.ActivityService = ActivityService.new(Context)
 Context.Services.WildEggService = WildEggService.new(Context)
 Context.Services.FighterService = FighterService.new(Context)
+Context.Services.FighterAssistService = FighterAssistService.new(Context)
 Context.Services.ResetService = ResetService.new(Context)
 Context.Services.DevService = DevService.new(Context)
 Context.Services.PlayerService = PlayerService.new(Context)
@@ -241,6 +244,7 @@ Context.Services.MovementService:Start()
 Context.Services.EventService:Start()
 Context.Services.WildEggService:Start()
 Context.Services.FighterService:Start()
+Context.Services.FighterAssistService:Start()
 Context.Services.ResetService:Start()
 Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
