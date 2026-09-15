@@ -206,37 +206,45 @@ function FighterUI:Rebuild()
 	for index, fighter in ipairs(fighters) do
 		local rarity = tostring(fighter:GetAttribute("Rarity") or "Rare")
 		local rarityData = self.Config.Rarities[rarity] or self.Config.Rarities.Rare
+		local definition = self.Config.GetById(fighter.Name)
 		local slot = tonumber(fighter:GetAttribute("EquippedSlot")) or 0
 		local equipped = slot > 0
 		local trait = tostring(fighter:GetAttribute("Trait") or "Normal")
 		local traitPower = tonumber(fighter:GetAttribute("TraitPowerMultiplier")) or 1
 		local copies = tonumber(fighter:GetAttribute("Copies")) or 1
 		local teamPower = (rarityData.TeamPower or 0) * traitPower
+		local element = definition and definition.Element or "Unknown"
+		local role = definition and definition.Role or "Unknown"
+		local assistName = definition and definition.Assist and definition.Assist.Name or "No Assist"
+		local passiveName = definition and definition.Passive and definition.Passive.Name or "No Passive"
+		local elementColor = self.Config.Elements[element] or rarityData.Color
 
 		local row = Instance.new("Frame")
 		row.Name = fighter.Name
-		row.Size = UDim2.new(1, -4, 0, 72)
+		row.Size = UDim2.new(1, -4, 0, 88)
 		row.BackgroundColor3 = equipped and Color3.fromRGB(38, 42, 55) or Color3.fromRGB(29, 32, 44)
 		row.BorderSizePixel = 0
 		row.LayoutOrder = index
 		row.Parent = self.List
 		corner(row, 11)
-		stroke(row, equipped and rarityData.Color or Color3.fromRGB(80, 82, 98), equipped and 0.42 or 0.78)
+		stroke(row, equipped and elementColor or Color3.fromRGB(80, 82, 98), equipped and 0.42 or 0.78)
 
 		local rarityBar = Instance.new("Frame")
 		rarityBar.Size = UDim2.new(0, 5, 1, -14)
 		rarityBar.Position = UDim2.new(0, 7, 0, 7)
-		rarityBar.BackgroundColor3 = rarityData.Color
+		rarityBar.BackgroundColor3 = elementColor
 		rarityBar.BorderSizePixel = 0
 		rarityBar.Parent = row
 		corner(rarityBar, 4)
 
-		label(row, fighter.Value, UDim2.new(0.48, 0, 0, 24), UDim2.new(0, 22, 0, 8), 14, true)
-		local sub = label(row, string.format("%s • %s • x%d", string.upper(rarity), trait, copies), UDim2.new(0.56, 0, 0, 20), UDim2.new(0, 22, 0, 34), 11, true)
-		sub.TextColor3 = rarityData.Color
-		local powerText = label(row, string.format("TEAM +%.1f%%%s", teamPower * 100, equipped and (" • SLOT " .. slot) or ""), UDim2.new(0.58, 0, 0, 17), UDim2.new(0, 22, 0, 52), 10, false)
-		powerText.TextColor3 = Color3.fromRGB(171, 176, 194)
-		local equip = button(row, equipped and "UNEQUIP" or "EQUIP", UDim2.new(0, 104, 0, 36), UDim2.new(1, -116, 0, 18), equipped and Color3.fromRGB(48, 104, 76) or Color3.fromRGB(73, 55, 104))
+		label(row, fighter.Value, UDim2.new(0.48, 0, 0, 22), UDim2.new(0, 22, 0, 7), 14, true)
+		local sub = label(row, string.format("%s • %s %s • %s • x%d", string.upper(rarity), string.upper(element), string.upper(role), trait, copies), UDim2.new(0.70, 0, 0, 18), UDim2.new(0, 22, 0, 29), 10, true)
+		sub.TextColor3 = elementColor
+		local identity = label(row, "ASSIST: " .. assistName .. "  •  PASSIVE: " .. passiveName, UDim2.new(0.72, 0, 0, 17), UDim2.new(0, 22, 0, 48), 9, false)
+		identity.TextColor3 = Color3.fromRGB(196, 199, 213)
+		local powerText = label(row, string.format("TEAM +%.1f%%%s", teamPower * 100, equipped and (" • SLOT " .. slot) or ""), UDim2.new(0.62, 0, 0, 16), UDim2.new(0, 22, 0, 67), 9, false)
+		powerText.TextColor3 = Color3.fromRGB(161, 166, 184)
+		local equip = button(row, equipped and "UNEQUIP" or "EQUIP", UDim2.new(0, 104, 0, 38), UDim2.new(1, -116, 0, 25), equipped and Color3.fromRGB(48, 104, 76) or Color3.fromRGB(73, 55, 104))
 		equip.Activated:Connect(function() self.Remote:FireServer("Equip", fighter.Name) end)
 		table.insert(self.Connections, fighter:GetAttributeChangedSignal("EquippedSlot"):Connect(function() self:Rebuild() end))
 		table.insert(self.Connections, fighter:GetAttributeChangedSignal("Copies"):Connect(function() self:Rebuild() end))
