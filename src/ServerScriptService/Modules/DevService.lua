@@ -8,6 +8,7 @@ function DevService.new(context)
 	return setmetatable({
 		Context = context,
 		SurgeToken = 0,
+		ResetArmedUntil = {},
 	}, DevService)
 end
 
@@ -70,7 +71,7 @@ function DevService:SpawnFreshBoss()
 		if data.Boss then
 			combat.Enemies[model] = nil
 			if model.Parent then model:Destroy() end
-			end
+		end
 	end
 	combat:AddEnemy(self.Context.Config.Zones[4], 0, true)
 	local model = self:FindBoss()
@@ -164,6 +165,24 @@ function DevService:TestWildEgg(player)
 	self.Context:Notify(player, "DEV • Wild Egg spawned nearby. Walk toward it to test reveal + claim validation.", "success")
 end
 
+function DevService:RequestSaveReset(player)
+	local now = os.clock()
+	local armedUntil = self.ResetArmedUntil[player] or 0
+	if now > armedUntil then
+		self.ResetArmedUntil[player] = now + 8
+		self.Context:Notify(player, "DEV RESET ARMED • Click RESET SAVE again within 8 seconds to permanently wipe your current save.", "error")
+		return
+	end
+
+	self.ResetArmedUntil[player] = nil
+	local ok, message = self.Context.Services.ResetService:ResetPlayer(player)
+	if ok then
+		self.Context:Notify(player, "DEV SAVE RESET COMPLETE • " .. tostring(message), "success")
+	else
+		self.Context:Notify(player, "DEV SAVE RESET ERROR • " .. tostring(message), "error")
+	end
+end
+
 function DevService:Execute(player, command)
 	if not self:IsAuthorized(player) then
 		warn("Blocked unauthorized Anime Rift dev command from", player.Name, command)
@@ -222,6 +241,8 @@ function DevService:Execute(player, command)
 	elseif command == "Save" then
 		data:Save(player)
 		self.Context:Notify(player, "DEV • Save requested", "success")
+	elseif command == "ResetSave" then
+		self:RequestSaveReset(player)
 	elseif command == "Hub" then
 		self.Context.Services.ActivityService:MarkLegitimateTeleport(player, 4)
 		self.Context.Services.WorldService:TeleportToHub(player)
@@ -234,6 +255,7 @@ end
 function DevService:Start()
 	for _, player in ipairs(Players:GetPlayers()) do self:SetAccess(player) end
 	Players.PlayerAdded:Connect(function(player) self:SetAccess(player) end)
+	Players.PlayerRemoving:Connect(function(player) self.ResetArmedUntil[player] = nil end)
 	self.Context.Remotes.DevCommand.OnServerEvent:Connect(function(player, command)
 		self:Execute(player, command)
 	end)
