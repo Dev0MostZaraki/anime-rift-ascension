@@ -18,7 +18,7 @@ end
 
 function FighterAssistService:GetEquippedFighter(player, slot)
 	local inventory = player:FindFirstChild("FighterInventory")
-	if not inventory then return nil, nil end
+	if not inventory then return nil, nil, nil end
 	for _, item in ipairs(inventory:GetChildren()) do
 		if (tonumber(item:GetAttribute("EquippedSlot")) or 0) == slot then
 			local definition, rarity = self.Config.GetById(item.Name)
@@ -62,8 +62,6 @@ function FighterAssistService:GetModifiers(player, targetData)
 		end
 	end
 
-	-- Keep early-game passive stacking useful without allowing three support units to
-	-- collapse Assist cooldowns into an automation loop.
 	modifiers.AssistCooldownReduction = math.clamp(modifiers.AssistCooldownReduction, 0, 0.28)
 	modifiers.MaxHealth = math.clamp(modifiers.MaxHealth, 0, 0.30)
 	return modifiers
@@ -241,6 +239,8 @@ end
 
 function FighterAssistService:DoBarrage(player, root, definition, assist)
 	local combat = self.Context.Services.CombatService
+	local initialTargets = self:GetTargetsAround(root.Position, assist.Range or 22)
+	if #initialTargets == 0 then return 0 end
 	local pulses = math.clamp(math.floor(tonumber(assist.Pulses) or 3), 1, 5)
 	local baseDamage = self:BaseDamage(player, assist)
 	for pulse = 1, pulses do
@@ -256,7 +256,7 @@ function FighterAssistService:DoBarrage(player, root, definition, assist)
 			combat:Pulse(currentRoot.Position, color, (assist.Range or 22) * (0.65 + pulse * 0.08), 0.25)
 		end)
 	end
-	return #self:GetTargetsAround(root.Position, assist.Range or 22)
+	return #initialTargets
 end
 
 function FighterAssistService:Activate(player, slot)
@@ -304,7 +304,6 @@ function FighterAssistService:Activate(player, slot)
 		return
 	end
 
-	-- Empty target spam must not consume the cooldown except for explicit defensive/heal skills.
 	if hitCount <= 0 and assistType ~= "HealArea" then
 		self.Context:Notify(player, definition.Assist.Name .. " needs a target in range.", "info")
 		return
@@ -316,6 +315,12 @@ function FighterAssistService:Activate(player, slot)
 	self.Context.Services.CombatService:Pulse(root.Position, color, math.max(8, (assist.Range or 14) * 0.8), 0.32)
 	self.Context.Remotes.FighterAssist:FireClient(player, "Activated", slot, cooldown, item.Name, definition.Assist.Name)
 	self.Context:Notify(player, definition.Name .. " • " .. definition.Assist.Name, rarity or "info")
+end
+
+function FighterAssistService:ResetCooldowns(player)
+	self.LastAssist[player] = nil
+	player:SetAttribute("FighterTeamLockedUntil", 0)
+	self.Context.Remotes.FighterAssist:FireClient(player, "ResetCooldowns")
 end
 
 function FighterAssistService:InstallCombatPassiveBridge()
