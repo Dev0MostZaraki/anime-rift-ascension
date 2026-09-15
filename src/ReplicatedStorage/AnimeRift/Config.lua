@@ -2,7 +2,7 @@ local Config = {}
 
 Config.Game = {
 	Name = "Anime Rift Ascension",
-	Version = "4.9-living-hunt",
+	Version = "5.0-rng-progression-foundation",
 
 	-- Basic combat
 	BaseDamage = 12,
@@ -66,8 +66,6 @@ Config.Game = {
 	MasteryPerBoss = 30,
 	MasteryDamagePerPoint = 0.001,
 	MasteryDamageCap = 0.50,
-	PlaytimeRewardSeconds = 120,
-	PlaytimeRewardCoins = 250,
 	AutosaveSeconds = 75,
 	EnemyRespawnSeconds = 4,
 	BossRespawnSeconds = 70,
@@ -82,6 +80,14 @@ Config.RarityColors = {
 	Legendary = Color3.fromRGB(255, 183, 48),
 	Mythic = Color3.fromRGB(255, 68, 145),
 	WORLD = Color3.fromRGB(255, 228, 92),
+	White = Color3.fromRGB(235, 238, 245),
+	Emerald = Color3.fromRGB(76, 220, 128),
+	Azure = Color3.fromRGB(80, 165, 255),
+	Arcane = Color3.fromRGB(184, 95, 255),
+	Crimson = Color3.fromRGB(255, 78, 90),
+	Golden = Color3.fromRGB(255, 211, 72),
+	Prismatic = Color3.fromRGB(255, 115, 235),
+	Void = Color3.fromRGB(90, 67, 126),
 }
 
 Config.Styles = {
@@ -287,9 +293,6 @@ Config.Quests = {
 }
 
 Config.WorldEvents = {
-	SecretEggFirstDelay = 45,
-	SecretEggRespawnMin = 100,
-	SecretEggRespawnMax = 160,
 	RiftSurgeFirstDelay = 110,
 	RiftSurgeInterval = 240,
 	RiftSurgeDuration = 55,
