@@ -49,14 +49,19 @@ end
 local function polishHeader()
 	local top=gui:FindFirstChild("PlayerHeader")
 	if not top then return end
-	top.Size=UDim2.new(0,520,0,72)
+	top.Size=UDim2.new(0,590,0,72)
 	top.Position=UDim2.new(.5,0,0,14)
 	top.BackgroundColor3=Color3.fromRGB(11,13,21)
 	top.BackgroundTransparency=.14
 	corner(top,14)
 	stroke(top,Color3.fromRGB(126,94,170),.57,1)
 	gradient(top,Color3.fromRGB(23,23,35),Color3.fromRGB(10,12,19),90)
-	for _,child in ipairs(top:GetDescendants()) do if child:IsA("TextLabel") then child.TextStrokeTransparency=1 end end
+	for _,child in ipairs(top:GetDescendants()) do
+		if child:IsA("TextLabel") then
+			child.TextStrokeTransparency=1
+			if child.Text=="ANIME RIFT // ASCENSION" then child.Size=UDim2.new(0,205,0,21); child.TextSize=13 end
+		end
+	end
 end
 
 local function polishDock()
