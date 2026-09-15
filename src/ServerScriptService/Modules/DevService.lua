@@ -84,6 +84,7 @@ function DevService:TeleportToBoss(player)
 	local boss = self:FindBoss()
 	if not boss then boss = self:SpawnFreshBoss() end
 	if not boss or not boss.PrimaryPart then return end
+	self.Context.Services.ActivityService:MarkLegitimateTeleport(player, 4)
 	root.AssemblyLinearVelocity = Vector3.zero
 	local target = boss.PrimaryPart.Position + Vector3.new(0, 0, 28)
 	root.CFrame = CFrame.lookAt(target, boss.PrimaryPart.Position)
@@ -134,6 +135,35 @@ function DevService:ForceRare(player)
 	end
 end
 
+function DevService:TestWildEgg(player)
+	local wild = self.Context.Services.WildEggService
+	local activity = self.Context.Services.ActivityService
+	local _, _, _, root = getPlayerObjects(player)
+	if not wild or not activity or not root then return end
+
+	wild.ScheduleToken += 1
+	wild:ClearActiveEgg()
+	wild:Spawn()
+	local egg = wild.ActiveEgg
+	if not egg then
+		self.Context:Notify(player, "DEV • Could not find a valid Wild Egg surface.", "error")
+		return
+	end
+
+	local progression = activity:EnsureProfile(player)
+	if progression then
+		progression.SessionEffectiveSeconds.Value = math.max(
+			progression.SessionEffectiveSeconds.Value,
+			wild.Config.WildEgg.RequiredSessionEffectiveSeconds
+		)
+	end
+	activity:MarkLegitimateTeleport(player, 5)
+	root.AssemblyLinearVelocity = Vector3.zero
+	local target = egg.Position + Vector3.new(0, 2.5, 16)
+	root.CFrame = CFrame.lookAt(target, egg.Position)
+	self.Context:Notify(player, "DEV • Wild Egg spawned nearby. Walk toward it to test reveal + claim validation.", "success")
+end
+
 function DevService:Execute(player, command)
 	if not self:IsAuthorized(player) then
 		warn("Blocked unauthorized Anime Rift dev command from", player.Name, command)
@@ -182,12 +212,15 @@ function DevService:Execute(player, command)
 		self.Context:Notify(player, "DEV • Rift Tyrant respawned", "boss")
 	elseif command == "Rare" then
 		self:ForceRare(player)
+	elseif command == "WildEgg" then
+		self:TestWildEgg(player)
 	elseif command == "TestRelic" then
 		self.Context.Services.LootService:GrantRelic(player, 4, true)
 	elseif command == "Save" then
 		data:Save(player)
 		self.Context:Notify(player, "DEV • Save requested", "success")
 	elseif command == "Hub" then
+		self.Context.Services.ActivityService:MarkLegitimateTeleport(player, 4)
 		self.Context.Services.WorldService:TeleportToHub(player)
 		self.Context.Remotes.ZoneEntered:FireClient(player, "Central Hub", Color3.fromRGB(154, 102, 235))
 	elseif command == "Surge" then
