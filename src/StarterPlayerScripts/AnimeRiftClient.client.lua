@@ -7,8 +7,11 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local AnimeRift = ReplicatedStorage:WaitForChild("AnimeRift")
 local Config = require(AnimeRift:WaitForChild("Config"))
+local Version = require(AnimeRift:WaitForChild("Version"))
+local FighterConfig = require(AnimeRift:WaitForChild("FighterConfig"))
 local Hud = require(AnimeRift:WaitForChild("Client"):WaitForChild("Hud"))
 local PetUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("PetUI"))
+local FighterUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("FighterUI"))
 local CombatUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("CombatUI"))
 local ArsenalUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("ArsenalUI"))
 local RelicUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("RelicUI"))
@@ -25,7 +28,9 @@ local stats = player:WaitForChild("leaderstats", 15)
 local profile = player:WaitForChild("RiftProfile", 15)
 local petInventory = player:WaitForChild("PetInventory", 15)
 local relicInventory = player:WaitForChild("RelicInventory", 15)
-if not stats or not profile or not petInventory or not relicInventory then
+local fighterInventory = player:WaitForChild("FighterInventory", 15)
+local fighterProfile = profile and profile:WaitForChild("Fighters", 15)
+if not stats or not profile or not petInventory or not relicInventory or not fighterInventory or not fighterProfile then
 	warn("Anime Rift client could not find server-created player data.")
 	return
 end
@@ -43,6 +48,7 @@ local visualFX = VisualFX.new(hud.Gui)
 local worldMotion = WorldMotion.new()
 worldMotion:Start()
 PetUI.new(hud.Gui, petInventory, Config, remotes:WaitForChild("EquipPet"))
+FighterUI.new(hud.Gui, player, fighterInventory, fighterProfile, FighterConfig, remotes:WaitForChild("FighterAction"))
 ArsenalUI.new(hud.Gui, player, profile, stats, Config, remotes:WaitForChild("StyleAction"))
 RelicUI.new(hud.Gui, relicInventory, Config, remotes:WaitForChild("EquipRelic"))
 MovementUI.new(hud.Gui, Config, remotes:WaitForChild("Movement"))
@@ -181,4 +187,4 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-print("[Anime Rift Ascension] client started - " .. Config.Game.Version)
+print("[Anime Rift Ascension] client started - " .. Version.Version)
