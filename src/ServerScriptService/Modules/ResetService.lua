@@ -91,6 +91,8 @@ function ResetService:ResetRuntime(player)
 		pets:ClearFollowers(player)
 		pets:RebuildFollowers(player)
 	end
+	local assists = self.Context.Services.FighterAssistService
+	if assists then assists:ResetCooldowns(player) end
 
 	self.Context.Services.DataService:RecalculatePower(player)
 	self.Context.Services.StatsService:Recalculate(player, false)
@@ -115,8 +117,6 @@ function ResetService:PersistReset(player)
 		end
 		session.Data.SchemaVersion = 3
 		session.Data.Snapshot = payload
-		-- Mark legacy migration complete so an intentionally reset account can never
-		-- resurrect its old v2 save on the next join.
 		session.Data.LegacyMigration = {
 			Completed = true,
 			Found = false,
@@ -126,7 +126,6 @@ function ResetService:PersistReset(player)
 		local ok, err = pcall(function() session:Save() end)
 		if not ok then return false, "ProfileStore reset save failed: " .. tostring(err) end
 
-		-- Keep the emergency legacy fallback in the same reset state as v3.
 		local legacyOk, legacyErr = pcall(function()
 			data.LegacyStore:UpdateAsync("u_" .. player.UserId, function()
 				return payload
