@@ -7,6 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local AnimeRift = ReplicatedStorage:WaitForChild("AnimeRift")
 local Config = require(AnimeRift:WaitForChild("Config"))
+local Version = require(AnimeRift:WaitForChild("Version"))
 local FighterConfig = require(AnimeRift:WaitForChild("FighterConfig"))
 local Hud = require(AnimeRift:WaitForChild("Client"):WaitForChild("Hud"))
 local PetUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("PetUI"))
@@ -186,4 +187,4 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
-print("[Anime Rift Ascension] client started - " .. Config.Game.Version)
+print("[Anime Rift Ascension] client started - " .. Version.Version)
