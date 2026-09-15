@@ -6,3 +6,5 @@
 .DS_Store
 Thumbs.db
 aftman.toml
+Packages/*
+!Packages/.gitkeep
