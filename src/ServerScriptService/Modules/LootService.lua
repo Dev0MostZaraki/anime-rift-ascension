@@ -54,6 +54,17 @@ function LootService:DropFromEnemy(player, enemyData)
 		end
 		return
 	end
+
+	if enemyData.Rare then
+		-- Named rares are a deliberate hunt target: one relic is guaranteed and
+		-- higher-zone rares can roll a second upgraded relic.
+		self:GrantRelic(player, enemyData.Zone.Id, false)
+		if math.random() <= (enemyData.BonusRelicChance or 0) then
+			self:GrantRelic(player, enemyData.Zone.Id, true)
+		end
+		return
+	end
+
 	if math.random() <= cfg.RelicDropChance then
 		self:GrantRelic(player, enemyData.Zone.Id, false)
 	end
