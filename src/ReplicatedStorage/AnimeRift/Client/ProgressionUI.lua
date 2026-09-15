@@ -65,7 +65,7 @@ function ProgressionUI.new(player)
 	local active = makeLabel(panel, UDim2.new(0, 12, 0, 54), UDim2.new(0.6, -12, 0, 18), "Active 00:00", 12, false)
 	local tickets = makeLabel(panel, UDim2.new(0.6, 0, 0, 54), UDim2.new(0.4, -12, 0, 18), "Tickets 0", 12, false)
 	tickets.TextXAlignment = Enum.TextXAlignment.Right
-	local note = makeLabel(panel, UDim2.new(0, 12, 0, 74), UDim2.new(1, -24, 0, 14), "Move • fight • hatch • explore", 10, false)
+	local note = makeLabel(panel, UDim2.new(0, 12, 0, 74), UDim2.new(1, -24, 0, 14), "Move • land hits • explore • discover", 10, false)
 	note.TextColor3 = Color3.fromRGB(155, 160, 178)
 
 	local resonanceValue = progression:WaitForChild("Resonance")
