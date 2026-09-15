@@ -10,12 +10,12 @@ Passive timed coin rewards were removed.
 
 Effective time now advances only while the server has recent evidence of activity. Current evidence sources are:
 
-- plausible character movement
-- accepted combat attacks
-- accepted abilities
+- plausible character movement / exploration
+- server-validated combat hits
 - enemy / boss kills
-- successful pet hatches
-- Wild Egg claims
+- legitimate world discoveries such as Wild Egg claims
+
+Simply clicking attack without hitting an enemy does not count. Standard hatching by itself also does not maintain Effective Playtime, because future Auto Hatch / Multi Hatch features must not become an AFK Resonance farm.
 
 The server owns the timer. Clients do not submit playtime values.
 
@@ -65,6 +65,7 @@ The new Wild Egg system:
 - validates claims server-side
 - requires effective session activity before claims
 - temporarily rejects sensitive claims after implausible movement unless the teleport was server-authorized
+- recognizes existing hub / Waystone fast travel as legitimate after the server confirms position actually changed
 - tracks discoveries by Wild Egg tier
 
 Current tiers:
@@ -129,10 +130,12 @@ The top-right progression panel should appear on the client.
 
 1. Stand still without interacting for roughly 20 seconds.
 2. Confirm Effective Playtime does not continuously climb.
-3. Walk normally for 20–30 seconds.
-4. Confirm Active time increases.
-5. Attack enemies and use E/R abilities.
-6. Confirm activity continues while legitimately fighting.
+3. Spam attack in empty space and confirm that alone does not maintain Active time.
+4. Walk normally for 20–30 seconds.
+5. Confirm Active time increases.
+6. Hit enemies and use abilities against real targets.
+7. Confirm activity continues while legitimately fighting.
+8. Hatch repeatedly while standing still and confirm hatching alone does not indefinitely maintain Active time.
 
 ### Test C — normal hatch mutation
 
@@ -157,7 +160,14 @@ Most rolls should be Normal. Rare mutation rates are intentionally low.
 9. Check `RiftProfile/Progression/WildEggIndex`.
 10. Check the new pet attributes.
 
-### Test E — persistence
+### Test E — movement validation / fast travel
+
+1. Use normal sprint and Dash and confirm no false Wild Egg claim rejection occurs.
+2. Use a legitimate Waystone fast travel or return to Rift Haven.
+3. Confirm the server marks that actual position change as legitimate.
+4. A claim immediately after a valid game teleport should not be rejected as exploit movement.
+
+### Test F — persistence
 
 When API access is available:
 
