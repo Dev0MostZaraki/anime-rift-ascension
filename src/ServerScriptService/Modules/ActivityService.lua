@@ -257,23 +257,16 @@ function ActivityService:InstallGameplayBridges()
 	local combat = self.Context.Services.CombatService
 	if combat and not combat.__ActivityPatched then
 		combat.__ActivityPatched = true
-		local rawAttack = combat.Attack
-		function combat:Attack(player)
-			local before = self.LastAttack[player] or 0
-			rawAttack(self, player)
-			if (self.LastAttack[player] or 0) ~= before then
-				self.Context.Services.ActivityService:Record(player, "combat", 1)
-			end
-		end
 
-		local rawAbility = combat.Ability
-		function combat:Ability(player, name)
-			local key = tostring(player.UserId) .. ":" .. tostring(name)
-			local before = self.LastAbility[key] or 0
-			rawAbility(self, player, name)
-			if (self.LastAbility[key] or 0) ~= before then
-				self.Context.Services.ActivityService:Record(player, "ability", 1.5)
+		-- A click or ability press by itself is not proof of active gameplay: macros can
+		-- spam both. Count combat only after the server has validated and applied a hit.
+		local rawHit = combat.Hit
+		function combat:Hit(player, model, damage, crit, stagger)
+			local data = self.Enemies[model]
+			if data and data.Alive and (tonumber(damage) or 0) > 0 then
+				self.Context.Services.ActivityService:Record(player, data.Boss and "boss_hit" or "combat_hit", data.Boss and 1.5 or 1)
 			end
+			return rawHit(self, player, model, damage, crit, stagger)
 		end
 
 		local rawKill = combat.Kill
@@ -286,19 +279,8 @@ function ActivityService:InstallGameplayBridges()
 		end
 	end
 
-	local pets = self.Context.Services.PetService
-	if pets and not pets.__ActivityPatched then
-		pets.__ActivityPatched = true
-		local rawHatch = pets.Hatch
-		function pets:Hatch(player, eggId)
-			local inventory = player:FindFirstChild("PetInventory")
-			local before = inventory and #inventory:GetChildren() or 0
-			rawHatch(self, player, eggId)
-			inventory = player:FindFirstChild("PetInventory")
-			local after = inventory and #inventory:GetChildren() or 0
-			if after > before then self.Context.Services.ActivityService:Record(player, "hatch", 1.25) end
-		end
-	end
+	-- Hatching is intentionally not sufficient to maintain Effective Playtime.
+	-- Future Auto Hatch / Multi Hatch convenience must not become an AFK Resonance farm.
 end
 
 function ActivityService:Start()
