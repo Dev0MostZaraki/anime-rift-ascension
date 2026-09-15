@@ -52,6 +52,7 @@ local Modules = script.Parent:WaitForChild("Modules")
 local DataService = require(Modules:WaitForChild("DataService"))
 local StatsService = require(Modules:WaitForChild("StatsService"))
 local QuestService = require(Modules:WaitForChild("QuestService"))
+local CoreLoopService = require(Modules:WaitForChild("CoreLoopService"))
 local AssetIntakeService = require(Modules:WaitForChild("AssetIntakeService"))
 local CreatureArtService = require(Modules:WaitForChild("CreatureArtService"))
 local PetService = require(Modules:WaitForChild("PetService"))
@@ -73,6 +74,7 @@ local PlayerService = require(Modules:WaitForChild("PlayerService"))
 Context.Services.DataService = DataService.new(Context)
 Context.Services.StatsService = StatsService.new(Context)
 Context.Services.QuestService = QuestService.new(Context)
+Context.Services.CoreLoopService = CoreLoopService.new(Context)
 Context.Services.AssetIntakeService = AssetIntakeService.new(Context)
 Context.Services.CreatureArtService = CreatureArtService.new(Context)
 Context.Services.PetService = PetService.new(Context)
@@ -142,8 +144,7 @@ Context.Services.AssetIntakeService:Start()
 Context.Services.WorldService:Start()
 Context.Services.WorldDecorService:Start()
 
--- 4.3 replaces the old prototype landmarks for the three later regions while
--- keeping useful ambient rocks, pines and dead trees from the earlier decor pass.
+-- Replace the older prototype landmarks while keeping useful ambient decor.
 do
 	local decor = Context.WorldFolder and Context.WorldFolder:FindFirstChild("Decor")
 	if decor then
@@ -161,6 +162,7 @@ end
 Context.Services.OpenWorldSliceService:Start()
 Context.Services.OpenWorldExpansionService:Start()
 Context.Services.EnvironmentAssetService:Start()
+Context.Services.CoreLoopService:Start()
 Context.Services.CreatureArtService:Start()
 Context.Services.StatsService:Start()
 Context.Services.PetService:Start()
@@ -174,4 +176,4 @@ Context.Services.EventService:Start()
 Context.Services.DevService:Start()
 Context.Services.PlayerService:Start()
 
-print(string.format("[%s] server started • %s", Config.Game.Name, Config.Game.Version))
+print(string.format("[%s] server started • %s", Config.Game.Name, Version.Version))
