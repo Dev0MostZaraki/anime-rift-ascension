@@ -70,7 +70,7 @@ function DevService:SpawnFreshBoss()
 		if data.Boss then
 			combat.Enemies[model] = nil
 			if model.Parent then model:Destroy() end
-		end
+			end
 	end
 	combat:AddEnemy(self.Context.Config.Zones[4], 0, true)
 	local model = self:FindBoss()
@@ -178,11 +178,14 @@ function DevService:Execute(player, command)
 	if command == "TestReady" then
 		stats.Level.Value = math.max(stats.Level.Value, 25)
 		stats.Coins.Value += 100000
-		stats.Gems.Value += 500
+		stats.Gems.Value += 6000
+		local progression = profile:FindFirstChild("Progression")
+		local tickets = progression and progression:FindFirstChild("RiftTickets")
+		if tickets then tickets.Value += 10 end
 		self:UnlockZones(profile)
 		self:UnlockStyles(profile)
 		data:RecalculatePower(player)
-		self.Context:Notify(player, "DEV TEST READY • Lv25+ • resources • all zones/styles", "success")
+		self.Context:Notify(player, "DEV TEST READY • Lv25+ • 100k Coins • 6k Gems • 10 Tickets • all zones/styles", "success")
 	elseif command == "Level10" then
 		stats.Level.Value += 10
 		data:RecalculatePower(player)
