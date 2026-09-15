@@ -1,3 +1,7 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local CoreLoopConfig = require(ReplicatedStorage:WaitForChild("AnimeRift"):WaitForChild("CoreLoopConfig"))
+
 local ArsenalService = {}
 ArsenalService.__index = ArsenalService
 
@@ -23,11 +27,21 @@ function ArsenalService:GetMastery(player, styleId)
 	return value and value.Value or 0
 end
 
+function ArsenalService:GetMasteryPerkBonus(player, styleId)
+	local mastery = self:GetMastery(player, styleId)
+	local bonus = 0
+	for _, perk in ipairs(CoreLoopConfig.MasteryPerks) do
+		if mastery >= perk.Threshold then bonus += perk.DamageBonus or 0 end
+	end
+	return bonus
+end
+
 function ArsenalService:GetMasteryMultiplier(player, styleId)
 	local cfg = self.Context.Config.Game
 	local mastery = self:GetMastery(player, styleId)
-	local bonus = math.min(cfg.MasteryDamageCap, mastery * cfg.MasteryDamagePerPoint)
-	return 1 + bonus
+	local linearBonus = math.min(cfg.MasteryDamageCap, mastery * cfg.MasteryDamagePerPoint)
+	local perkBonus = self:GetMasteryPerkBonus(player, styleId)
+	return 1 + linearBonus + perkBonus
 end
 
 function ArsenalService:AddMastery(player, amount)
@@ -35,14 +49,19 @@ function ArsenalService:AddMastery(player, amount)
 	if not profile then return end
 	local styleId = profile.EquippedStyle.Value
 	local mastery = profile.StyleMastery:FindFirstChild(styleId)
-	if not mastery then return end
+	local style = self.Context.Config.Styles[styleId]
+	if not mastery or not style then return end
 	local gain = math.max(0, math.floor(amount or 0))
 	local before = mastery.Value
 	mastery.Value += gain
-	for _, mark in ipairs({50, 100, 200, 350, 500}) do
-		if mastery.Value >= mark and before < mark then
-			self.Context:Notify(player, "STYLE MASTERY • " .. self.Context.Config.Styles[styleId].Name .. " reached " .. mark, "level")
-			break
+
+	for _, perk in ipairs(CoreLoopConfig.MasteryPerks) do
+		if mastery.Value >= perk.Threshold and before < perk.Threshold then
+			self.Context:Notify(
+				player,
+				"STYLE MASTERY UNLOCK • " .. style.Name .. " • " .. perk.Name .. " • " .. perk.Description,
+				"level"
+			)
 		end
 	end
 end
