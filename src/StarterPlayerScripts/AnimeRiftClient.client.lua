@@ -16,6 +16,7 @@ local DevUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("DevUI"))
 local VisualFX = require(AnimeRift:WaitForChild("Client"):WaitForChild("VisualFX"))
 local WorldMotion = require(AnimeRift:WaitForChild("Client"):WaitForChild("WorldMotion"))
 local MovementUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("MovementUI"))
+local DialogUI = require(AnimeRift:WaitForChild("Client"):WaitForChild("DialogUI"))
 
 local remotes = AnimeRift:WaitForChild("Remotes", 15)
 if not remotes then warn("Anime Rift remotes were not created. Check ServerScriptService output.") return end
@@ -45,6 +46,7 @@ PetUI.new(hud.Gui, petInventory, Config, remotes:WaitForChild("EquipPet"))
 ArsenalUI.new(hud.Gui, player, profile, stats, Config, remotes:WaitForChild("StyleAction"))
 RelicUI.new(hud.Gui, relicInventory, Config, remotes:WaitForChild("EquipRelic"))
 MovementUI.new(hud.Gui, Config, remotes:WaitForChild("Movement"))
+DialogUI.new(hud.Gui, remotes:WaitForChild("Dialog"))
 
 local devUI
 local function ensureDevUI()
