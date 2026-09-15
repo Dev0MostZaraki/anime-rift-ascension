@@ -48,6 +48,21 @@ function RareHuntService:Promote(model, data, zone)
 	return true
 end
 
+function RareHuntService:ForceSpawn(zoneId)
+	local zone = self.Context.Config.Zones[math.clamp(tonumber(zoneId) or 1, 1, #self.Context.Config.Zones)]
+	local combat = self.Context.Services.CombatService
+	if not zone or not combat then return nil end
+	for model, data in pairs(combat.Enemies) do
+		if data.Alive and data.Zone and data.Zone.Id == zone.Id and not data.Boss and not data.Elite and not data.Rare then
+			if self:Promote(model, data, zone) then
+				combat:UpdateLabel(model)
+				return model, data
+			end
+		end
+	end
+	return nil
+end
+
 function RareHuntService:InstallCombatBridge()
 	local combat = self.Context.Services.CombatService
 	if combat.__RareHuntPatched then return end
@@ -68,7 +83,6 @@ function RareHuntService:InstallCombatBridge()
 				if hunt:Promote(model, data, zone) then self:UpdateLabel(model) end
 				break
 			end
-		end
 	end
 
 	local rawKill = combat.Kill
