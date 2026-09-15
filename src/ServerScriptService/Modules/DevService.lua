@@ -120,6 +120,20 @@ function DevService:StartSurge(seconds)
 	end)
 end
 
+function DevService:ForceRare(player)
+	local region = player:GetAttribute("OpenWorldRegion")
+	local zoneId = 1
+	for _, zone in ipairs(self.Context.Config.Zones) do
+		if zone.Name == region then zoneId = zone.Id break end
+	end
+	local model, rare = self.Context.Services.RareHuntService:ForceSpawn(zoneId)
+	if model and rare then
+		self.Context:Notify(player, "DEV • Forced rare hunt in " .. self.Context.Config.Zones[zoneId].Name, "world")
+	else
+		self.Context:Notify(player, "DEV • No eligible normal enemy available for rare promotion.", "error")
+	end
+end
+
 function DevService:Execute(player, command)
 	if not self:IsAuthorized(player) then
 		warn("Blocked unauthorized Anime Rift dev command from", player.Name, command)
@@ -166,6 +180,8 @@ function DevService:Execute(player, command)
 	elseif command == "RespawnBoss" then
 		self:SpawnFreshBoss()
 		self.Context:Notify(player, "DEV • Rift Tyrant respawned", "boss")
+	elseif command == "Rare" then
+		self:ForceRare(player)
 	elseif command == "TestRelic" then
 		self.Context.Services.LootService:GrantRelic(player, 4, true)
 	elseif command == "Save" then
