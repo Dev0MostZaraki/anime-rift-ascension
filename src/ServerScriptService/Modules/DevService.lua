@@ -106,6 +106,8 @@ function DevService:ResetCooldowns(player)
 	end
 	local dash = self.Context.Services.DashService
 	if dash then dash.LastDash[player] = nil end
+	local assists = self.Context.Services.FighterAssistService
+	if assists then assists:ResetCooldowns(player) end
 	self.Context.Remotes.CombatFeedback:FireClient(player, "ResetCooldowns")
 end
 
