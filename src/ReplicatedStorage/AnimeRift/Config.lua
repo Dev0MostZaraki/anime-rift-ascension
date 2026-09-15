@@ -2,7 +2,7 @@ local Config = {}
 
 Config.Game = {
 	Name = "Anime Rift Ascension",
-	Version = "4.7-data-foundation",
+	Version = "4.9-living-hunt",
 
 	-- Basic combat
 	BaseDamage = 12,
