@@ -57,7 +57,7 @@ function PlayerService:SetupPlayer(player)
 		if combatStats then
 			self.Context:Notify(player, string.format("Lv.%d • %d HP • %.0f Defense", stats.Level.Value, combatStats.MaxHealth.Value, combatStats.Defense.Value), "info")
 		end
-		self.Context:Notify(player, "4.1 VERTICAL SLICE • Explore Rift Haven and follow the Verdant Road into the Wilds.", "info")
+		self.Context:Notify(player, "4.6 CORE LOOP • Regional quest chains, elites and mastery perks are now active.", "info")
 		if not data.PersistenceEnabled then
 			self.Context:Notify(player, "Studio session mode: persistent saving is currently unavailable.", "info")
 		end
