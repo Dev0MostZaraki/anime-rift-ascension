@@ -144,6 +144,7 @@ function DevUI.new(gui, player, remote)
 	button(list, "RIFT SURGE", "Force 60s double rewards", 14, Color3.fromRGB(105, 47, 135), function() send("Surge") end)
 	button(list, "RETURN TO HUB", "Instant safe teleport", 15, Color3.fromRGB(60, 64, 82), function() send("Hub") end)
 	button(list, "SAVE NOW", "Request DataStore save", 16, Color3.fromRGB(62, 85, 65), function() send("Save") end)
+	button(list, "RESET SAVE", "DANGER • click twice within 8s", 17, Color3.fromRGB(142, 38, 45), function() send("ResetSave") end)
 
 	local function toggle()
 		panel.Visible = not panel.Visible
