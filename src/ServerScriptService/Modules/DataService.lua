@@ -1,15 +1,39 @@
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local DataService = {}
 DataService.__index = DataService
 
+local LEGACY_STORE_NAME = "AnimeRiftAscension_v2"
+local PROFILE_STORE_NAME = "AnimeRiftAscension_v3"
+
+local PROFILE_TEMPLATE = {
+	SchemaVersion = 3,
+	LegacyMigration = {
+		Completed = false,
+		Found = false,
+		MigratedAt = 0,
+		Source = LEGACY_STORE_NAME,
+	},
+	Snapshot = {},
+}
+
 function DataService.new(context)
 	local self = setmetatable({}, DataService)
-	-- Keep the existing store so current test progress migrates into 3.0 instead of resetting.
-	self.Store = DataStoreService:GetDataStore("AnimeRiftAscension_v2")
 	self.Context = context
+	self.LegacyStore = DataStoreService:GetDataStore(LEGACY_STORE_NAME)
+	self.ProfileStoreName = PROFILE_STORE_NAME
 	self.PersistenceEnabled = game.GameId ~= 0
+	self.ProfileStoreInitialized = false
+	self.ProfileStore = nil
+	self.PlayerStore = nil
+	self.UsingProfileStore = false
+	self.Backend = "LegacyFallback"
+	self.Sessions = {}
+	self.Releasing = {}
 	return self
 end
 
@@ -19,6 +43,47 @@ local function createValue(className, name, value, parent)
 	object.Value = value
 	object.Parent = parent
 	return object
+end
+
+local function findProfileStoreModule()
+	local packages = ServerScriptService:FindFirstChild("Packages")
+	local candidate = packages and packages:FindFirstChild("ProfileStore")
+	if not candidate then return nil end
+	if candidate:IsA("ModuleScript") then return candidate end
+	if candidate:IsA("Folder") then
+		return candidate:FindFirstChild("init")
+			or candidate:FindFirstChild("ProfileStore")
+			or candidate:FindFirstChildWhichIsA("ModuleScript", true)
+	end
+	return nil
+end
+
+function DataService:InitializeProfileStore()
+	if self.ProfileStoreInitialized then return self.UsingProfileStore end
+	self.ProfileStoreInitialized = true
+
+	local module = findProfileStoreModule()
+	if not module then
+		warn("[Data Foundation] ProfileStore package missing; using legacy v2 fallback. Run `wally install` and restart Rojo.")
+		return false
+	end
+
+	local ok, library = pcall(require, module)
+	if not ok or type(library) ~= "table" or type(library.New) ~= "function" then
+		warn("[Data Foundation] ProfileStore failed to load; using legacy v2 fallback:", library)
+		return false
+	end
+
+	self.ProfileStore = library
+	self.PlayerStore = library.New(self.ProfileStoreName, PROFILE_TEMPLATE)
+	self.UsingProfileStore = true
+	self.Backend = "ProfileStoreV3"
+	print("[Data Foundation] ProfileStore v3 ready • v2 migration armed • session locking active")
+	return true
+end
+
+function DataService:GetBackendName()
+	return self.Backend
 end
 
 function DataService:CreateProfile(player)
@@ -313,29 +378,170 @@ function DataService:Apply(player, data)
 	self:RecalculatePower(player)
 end
 
-function DataService:Load(player)
-	if not self.PersistenceEnabled then return end
+function DataService:ReadLegacy(player)
+	if not self.PersistenceEnabled then return true, nil end
 	local ok, data = pcall(function()
-		return self.Store:GetAsync("u_" .. player.UserId)
+		return self.LegacyStore:GetAsync("u_" .. player.UserId)
+	end)
+	if ok then return true, data end
+	if RunService:IsStudio() then
+		self.PersistenceEnabled = false
+		warn("[Data Foundation] legacy v2 DataStore unavailable in this Studio session; using non-persistent ProfileStore mock:", data)
+		return true, nil
+	end
+	return false, data
+end
+
+function DataService:MigrateLegacy(player, profile)
+	profile:Reconcile()
+	local migration = profile.Data.LegacyMigration
+	if type(migration) ~= "table" then
+		migration = {Completed = false, Found = false, MigratedAt = 0, Source = LEGACY_STORE_NAME}
+		profile.Data.LegacyMigration = migration
+	end
+	if migration.Completed == true then return true end
+
+	local ok, legacy = self:ReadLegacy(player)
+	if not ok then
+		warn("[Data Foundation] refused to create a v3 snapshot because legacy v2 could not be read:", legacy)
+		return false
+	end
+
+	if not self.PersistenceEnabled and RunService:IsStudio() then
+		-- Keep migration pending. A live server with DataStore access will retry it later.
+		return true
+	end
+
+	if type(legacy) == "table" then
+		profile.Data.Snapshot = legacy
+		migration.Found = true
+		migration.MigratedAt = os.time()
+		print(string.format("[Data Foundation] migrated %s from %s -> %s", player.Name, LEGACY_STORE_NAME, PROFILE_STORE_NAME))
+	else
+		migration.Found = false
+		migration.MigratedAt = 0
+	end
+	migration.Completed = true
+	migration.Source = LEGACY_STORE_NAME
+	profile.Data.SchemaVersion = 3
+
+	local saved, saveErr = pcall(function() profile:Save() end)
+	if not saved then
+		warn("[Data Foundation] initial v3 migration save failed:", saveErr)
+		return false
+	end
+	return true
+end
+
+function DataService:LoadLegacyFallback(player)
+	if not self.PersistenceEnabled then return true end
+	local ok, data = pcall(function()
+		return self.LegacyStore:GetAsync("u_" .. player.UserId)
 	end)
 	if ok then
 		self:Apply(player, data)
-	else
-		self.PersistenceEnabled = false
-		warn("Anime Rift DataStore unavailable in this Studio session:", data)
+		return true
 	end
+	if RunService:IsStudio() then
+		self.PersistenceEnabled = false
+		warn("Anime Rift legacy DataStore unavailable in this Studio session:", data)
+		return true
+	end
+	warn("Anime Rift legacy load failed:", data)
+	return false
 end
 
-function DataService:Save(player)
-	if not self.PersistenceEnabled then return end
+function DataService:Load(player)
+	self:InitializeProfileStore()
+
+	if not self.UsingProfileStore then
+		self.Backend = "LegacyFallback"
+		player:SetAttribute("DataBackend", self.Backend)
+		return self:LoadLegacyFallback(player)
+	end
+
+	local key = "u_" .. player.UserId
+	local profile = self.PlayerStore:StartSessionAsync(key, {
+		Cancel = function()
+			return player.Parent ~= Players
+		end,
+	})
+	if not profile then
+		warn("[Data Foundation] failed to start ProfileStore session for", player.Name)
+		return false
+	end
+
+	profile:AddUserId(player.UserId)
+	profile:Reconcile()
+	self.Sessions[player] = profile
+	player:SetAttribute("DataBackend", self.Backend)
+
+	profile.OnSessionEnd:Connect(function()
+		if self.Sessions[player] == profile then self.Sessions[player] = nil end
+		if player.Parent == Players and self.Releasing[player] ~= true then
+			player:Kick("Your data session ended safely. Please rejoin.")
+		end
+	end)
+
+	if not self:MigrateLegacy(player, profile) then
+		self.Releasing[player] = true
+		pcall(function() profile:EndSession() end)
+		self.Sessions[player] = nil
+		self.Releasing[player] = nil
+		return false
+	end
+
+	self:Apply(player, profile.Data.Snapshot)
+	return true
+end
+
+function DataService:SaveLegacyFallback(player)
+	if not self.PersistenceEnabled then return true end
 	local payload = self:Serialize(player)
-	if not payload then return end
+	if not payload then return false end
 	local ok, err = pcall(function()
-		self.Store:UpdateAsync("u_" .. player.UserId, function()
+		self.LegacyStore:UpdateAsync("u_" .. player.UserId, function()
 			return payload
 		end)
 	end)
-	if not ok then warn("Anime Rift save failed:", err) end
+	if not ok then warn("Anime Rift legacy save failed:", err) end
+	return ok
+end
+
+function DataService:Save(player)
+	if not self.UsingProfileStore then return self:SaveLegacyFallback(player) end
+	local profile = self.Sessions[player]
+	if not profile or not profile:IsActive() then return false end
+	local payload = self:Serialize(player)
+	if not payload then return false end
+	profile.Data.SchemaVersion = 3
+	profile.Data.Snapshot = payload
+	local ok, err = pcall(function() profile:Save() end)
+	if not ok then warn("[Data Foundation] ProfileStore save failed:", err) end
+	return ok
+end
+
+function DataService:Release(player)
+	if not self.UsingProfileStore then
+		return self:SaveLegacyFallback(player)
+	end
+
+	local profile = self.Sessions[player]
+	if not profile then return true end
+	local payload = self:Serialize(player)
+	if payload then
+		profile.Data.SchemaVersion = 3
+		profile.Data.Snapshot = payload
+	end
+
+	self.Releasing[player] = true
+	local ok, err = pcall(function()
+		if profile:IsActive() then profile:EndSession() end
+	end)
+	self.Sessions[player] = nil
+	self.Releasing[player] = nil
+	if not ok then warn("[Data Foundation] ProfileStore session release failed:", err) end
+	return ok
 end
 
 return DataService
