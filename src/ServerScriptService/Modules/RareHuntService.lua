@@ -83,6 +83,7 @@ function RareHuntService:InstallCombatBridge()
 				if hunt:Promote(model, data, zone) then self:UpdateLabel(model) end
 				break
 			end
+		end
 	end
 
 	local rawKill = combat.Kill
